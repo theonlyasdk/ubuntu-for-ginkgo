@@ -1,0 +1,6 @@
+# Docker CE from the official Docker archive (no China mirror).
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: resolute
+Components: stable
+Signed-By: /etc/apt/keyrings/docker.gpg

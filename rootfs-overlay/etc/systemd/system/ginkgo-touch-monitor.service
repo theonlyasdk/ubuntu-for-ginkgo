@@ -1,0 +1,13 @@
+[Unit]
+Description=Ginkgo Touchscreen Unblank Monitor
+After=ginkgo-touch-sync.service
+Wants=ginkgo-touch-sync.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/ginkgo-touch-monitor.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=ginkgo WiFi IN regulatory and stable MAC
+After=ginkgo-mpss.service persist-mount.service NetworkManager.service
+Wants=ginkgo-mpss.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/ginkgo-wifi-setup.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=Ginkgo PM6125 RTC clock service
+DefaultDependencies=no
+After=systemd-modules-load.service local-fs.target
+Before=sysinit.target shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/ginkgo-rtc-sync.sh start
+ExecStop=/usr/local/sbin/ginkgo-rtc-sync.sh stop
+
+[Install]
+WantedBy=sysinit.target

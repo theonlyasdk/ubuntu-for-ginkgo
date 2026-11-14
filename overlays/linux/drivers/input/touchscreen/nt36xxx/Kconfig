@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Novatek NT36xxx SPI touchscreen driver (ginkgo host-download port)
+#
+config TOUCHSCREEN_NT36XXX_SPI
+	tristate "Novatek NT36xxx SPI touchscreen (host download)"
+	depends on SPI && OF
+	help
+	  Say Y here for the Novatek NT36xxx touchscreen on SPI with host
+	  firmware download (ginkgo / Redmi Note 8). The unit-specific
+	  firmware novatek_ts_tianma_fw.bin must be supplied via
+	  CONFIG_EXTRA_FIRMWARE or /lib/firmware.
+
+	  If unsure, say N.

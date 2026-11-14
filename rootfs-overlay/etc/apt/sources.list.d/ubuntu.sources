@@ -1,0 +1,8 @@
+# Official Ubuntu ports archive (ports.ubuntu.com).
+# The project deliberately avoids China mirrors (e.g. Tsinghua TUNA): the
+# operator is in India and those mirrors are slow or unreachable from here.
+Types: deb
+URIs: http://ports.ubuntu.com/ubuntu-ports
+Suites: resolute resolute-updates resolute-backports resolute-security
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg

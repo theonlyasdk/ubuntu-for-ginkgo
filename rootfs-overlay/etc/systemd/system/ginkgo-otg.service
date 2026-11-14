@@ -1,0 +1,11 @@
+[Unit]
+Description=Load PMI632 USB VBUS regulator and userspace consumer modules
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'lsmod | grep -q qcom_usb_vbus_regulator || insmod /lib/modules/ginkgo-extra/qcom_usb_vbus-regulator.ko 2>/dev/null || true; lsmod | grep -q userspace_consumer || insmod /lib/modules/ginkgo-extra/userspace-consumer.ko 2>/dev/null || true'
+
+[Install]
+WantedBy=multi-user.target

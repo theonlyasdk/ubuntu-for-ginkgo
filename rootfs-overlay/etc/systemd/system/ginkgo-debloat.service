@@ -1,0 +1,13 @@
+[Unit]
+Description=Purge phone-useless packages and trim login autostart
+After=multi-user.target
+ConditionPathExists=!/var/lib/ginkgo-debloat.done
+
+[Service]
+Type=simple
+Nice=19
+IOSchedulingClass=idle
+ExecStart=/usr/local/sbin/ginkgo-debloat.sh
+
+[Install]
+WantedBy=multi-user.target

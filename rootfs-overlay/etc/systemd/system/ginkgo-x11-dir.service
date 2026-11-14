@@ -1,0 +1,15 @@
+[Unit]
+Description=Create X11 socket directory for Xwayland
+# /tmp mounts late (a zram ordering cycle defers it past tmpfiles), so create the
+# X11 socket dir after tmp.mount; kwin_xwl needs it pre-existing for Xwayland.
+After=tmp.mount
+Before=sddm.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/mkdir -p /tmp/.X11-unix /tmp/.ICE-unix
+ExecStart=/usr/bin/chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix
+
+[Install]
+WantedBy=multi-user.target

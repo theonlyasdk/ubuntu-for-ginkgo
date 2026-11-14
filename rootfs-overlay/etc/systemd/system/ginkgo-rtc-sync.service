@@ -1,0 +1,6 @@
+[Unit]
+Description=Synchronize and commit RTC offset to disk
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ginkgo-rtc-sync.sh sync

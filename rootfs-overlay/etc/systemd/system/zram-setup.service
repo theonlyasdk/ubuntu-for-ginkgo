@@ -1,0 +1,17 @@
+[Unit]
+Description=Ginkgo ZRAM Swap Setup
+Documentation=man:zram(4)
+DefaultDependencies=no
+After=local-fs.target
+Before=swap.target basic.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/ginkgo-zram.sh start
+ExecStop=/usr/local/sbin/ginkgo-zram.sh stop
+TimeoutSec=30s
+
+[Install]
+WantedBy=swap.target basic.target

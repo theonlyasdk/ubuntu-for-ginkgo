@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Redmi Note 8 (ginkgo) Mainline Linux — System Atlas & Roadmap</title>
+	
+	<!-- Material Design 1 (2014) Typography and Material Icons -->
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+	
+	<!-- Mermaid.js for Architecture Diagram -->
+	<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+	<style>
+		/* ========= MATERIAL DESIGN 1 (2014, "Paper and Ink") DESIGN TOKENS ========= */
+		:root {
+			/* Primary 500 & 700 + Vibrant Accent A200 */
+			--primary: #3F51B5;              /* Indigo 500 - App Bar, primary branding */
+			--primary-dark: #303F9F;         /* Indigo 700 - Status bar, dark contrast */
+			--primary-light: #C5CAE9;        /* Indigo 100 - Selection highlights */
+			--accent: #FF4081;               /* Pink A200 - FAB, switches, active highlights */
+			--accent-dark: #F50057;          /* Pink A400 */
+			--accent-green: #4CAF50;         /* Green 500 */
+			--accent-amber: #FF9800;         /* Amber 500 */
+			--accent-red: #F44336;           /* Red 500 */
+			--accent-purple: #9C27B0;        /* Purple 500 */
+			--accent-cyan: #00BCD4;          /* Cyan 500 */
+
+			/* Surfaces & Backgrounds (Paper & Canvas) */
+			--background: #FAFAFA;          /* Grey 50 - Base canvas */
+			--surface: #FFFFFF;             /* White - Paper cards, dialogs, sheets */
+			--surface-secondary: #F5F5F5;   /* Grey 100 - Sub-surfaces & code blocks */
+			--code-bg: #263238;             /* Blue Grey 900 - Terminal / code block */
+			--code-text: #80CBC4;           /* Teal 200 - Code text */
+			--error: #D32F2F;               /* Red 700 */
+
+			/* On-color contrasts */
+			--on-primary: #FFFFFF;
+			--on-accent: #FFFFFF;
+
+			/* Ink opacity on light paper surfaces */
+			--text-high: rgba(0, 0, 0, 0.87);       /* 87% - Primary text, titles, icons */
+			--text-medium: rgba(0, 0, 0, 0.54);     /* 54% - Secondary text, subtitles */
+			--text-disabled: rgba(0, 0, 0, 0.38);   /* 38% - Hint text, disabled text */
+			--divider: rgba(0, 0, 0, 0.12);         /* 12% - Hairline dividers */
+			--scrim: rgba(0, 0, 0, 0.50);           /* 50% - Dialog & modal backdrops */
+
+			/* State overlays */
+			--state-hover: rgba(0, 0, 0, 0.04);
+			--state-focus: rgba(0, 0, 0, 0.12);
+			--state-pressed: rgba(0, 0, 0, 0.12);
+
+			/* Strict 2014 Shape Rules */
+			--radius-surface: 2px;          /* All rectangular surfaces (cards, buttons, panels) */
+			--radius-chip: 16px;            /* Chips only */
+			--radius-circle: 50%;           /* FAB, avatars, circular icon buttons */
+
+			/* 2014 Material Motion Easing Curves */
+			--ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);    /* Moving elements on stage */
+			--ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);  /* Incoming elements entering */
+			--ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);    /* Outgoing elements leaving */
+
+			/* 2014 Multi-layer Elevation Shadows */
+			--shadow-0: none;
+			--shadow-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);  /* Cards at rest */
+			--shadow-2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);  /* Raised buttons at rest */
+			--shadow-4: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23); /* App bar scrolled */
+			--shadow-6: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23); /* FAB at rest, snackbars */
+			--shadow-8: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);/* Menus, active button */
+			--shadow-12: 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22);/* FAB pressed */
+			--shadow-16: 0 16px 24px 2px rgba(0,0,0,0.14), 0 6px 30px 5px rgba(0,0,0,0.12), 0 8px 10px -5px rgba(0,0,0,0.20); /* Drawer */
+			--shadow-24: 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12), 0 11px 15px -7px rgba(0,0,0,0.20); /* Dialogs */
+
+			interpolate-size: allow-keywords;
+		}
+
+		/* Baseline 2014 Dark Theme */
+		[data-theme="dark"] {
+			--primary: #7986CB;              /* Indigo 300 */
+			--primary-dark: #3F51B5;         /* Indigo 500 */
+			--primary-light: #9FA8DA;        /* Indigo 200 */
+			--accent: #FF4081;               /* Pink A200 */
+			--background: #303030;          /* Dark grey screen canvas */
+			--surface: #424242;             /* Dark grey paper surfaces */
+			--surface-secondary: #383838;   /* Subtle inner card surface */
+			--code-bg: #1e262b;             /* Darker terminal */
+			--code-text: #a7ffeb;
+			--error: #E57373;
+
+			--on-primary: #000000;
+			--on-accent: #000000;
+
+			--text-high: rgba(255, 255, 255, 1.0);
+			--text-medium: rgba(255, 255, 255, 0.70);
+			--text-disabled: rgba(255, 255, 255, 0.38);
+			--divider: rgba(255, 255, 255, 0.12);
+			--scrim: rgba(0, 0, 0, 0.65);
+
+			--state-hover: rgba(255, 255, 255, 0.08);
+			--state-focus: rgba(255, 255, 255, 0.16);
+			--state-pressed: rgba(255, 255, 255, 0.16);
+		}
+
+		/* Reset & Base Styles */
+		*, *::before, *::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		html {
+			font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+			-webkit-font-smoothing: antialiased;
+			scroll-behavior: smooth;
+		}
+
+		body {
+			background-color: var(--background);
+			color: var(--text-high);
+			font-size: 15px;
+			line-height: 22px;
+			min-height: 100vh;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.material-icons {
+			font-family: 'Material Icons';
+			font-weight: normal;
+			font-style: normal;
+			font-size: 24px;
+			line-height: 1;
+			display: inline-block;
+			text-transform: none;
+			letter-spacing: normal;
+			word-wrap: normal;
+			white-space: nowrap;
+			direction: ltr;
+			-webkit-font-smoothing: antialiased;
+			user-select: none;
+		}
+
+		/* ========= TOP APP BAR (64px desktop / 56px mobile) ========= */
+		.md1-app-bar {
+			position: sticky;
+			top: 0;
+			z-index: 100;
+			background-color: var(--primary);
+			color: var(--on-primary);
+			height: 64px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 20px;
+			transition: box-shadow 200ms var(--ease-standard), background-color 200ms var(--ease-standard);
+			box-shadow: var(--shadow-0);
+		}
+
+		.md1-app-bar.is-scrolled {
+			box-shadow: var(--shadow-4);
+		}
+
+		.app-bar-left {
+			display: flex;
+			align-items: center;
+			gap: 16px;
+		}
+
+		.app-bar-title {
+			font-size: 20px;
+			font-weight: 500;
+			letter-spacing: 0.05px;
+			line-height: 28px;
+			white-space: nowrap;
+		}
+
+		.app-bar-actions {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.icon-btn {
+			width: 48px;
+			height: 48px;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			border-radius: var(--radius-circle);
+			color: inherit;
+			background: transparent;
+			border: none;
+			cursor: pointer;
+			outline: none;
+			transition: background-color 150ms var(--ease-standard);
+		}
+
+		.icon-btn:hover {
+			background-color: rgba(255, 255, 255, 0.12);
+		}
+
+		/* ========= MAIN CONTAINER ========= */
+		.page-container {
+			max-width: 1200px;
+			width: 100%;
+			margin: 0 auto;
+			padding: 28px 20px 120px;
+			flex: 1;
+		}
+
+		/* ========= HERO PAPER BANNER (2dp Elevation) ========= */
+		.hero-paper {
+			background: var(--surface);
+			border-radius: var(--radius-surface);
+			padding: 32px 32px;
+			margin-bottom: 28px;
+			box-shadow: var(--shadow-2);
+		}
+
+		.hero-kicker {
+			font-size: 13px;
+			font-weight: 500;
+			text-transform: uppercase;
+			letter-spacing: 1.5px;
+			color: var(--primary);
+			margin-bottom: 8px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.hero-title {
+			font-size: 34px;
+			font-weight: 400;
+			line-height: 42px;
+			letter-spacing: -0.2px;
+			color: var(--text-high);
+			margin-bottom: 12px;
+		}
+
+		.hero-desc {
+			font-size: 16px;
+			font-weight: 400;
+			line-height: 26px;
+			color: var(--text-medium);
+			max-width: 980px;
+			margin-bottom: 28px;
+		}
+
+		/* Hero Stats Grid (Skimmable Takeaways) */
+		.hero-figures-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+			gap: 16px;
+			border-top: 1px solid var(--divider);
+			padding-top: 24px;
+		}
+
+		.hero-figure-card {
+			background: var(--surface-secondary);
+			border-radius: var(--radius-surface);
+			padding: 18px 20px;
+			border-left: 4px solid var(--primary);
+		}
+
+		.figure-kicker {
+			font-size: 12px;
+			font-weight: 500;
+			text-transform: uppercase;
+			letter-spacing: 0.8px;
+			color: var(--text-medium);
+			display: block;
+			margin-bottom: 4px;
+		}
+
+		.figure-headline {
+			font-size: 22px;
+			font-weight: 500;
+			color: var(--text-high);
+			line-height: 28px;
+		}
+
+		.figure-sub {
+			font-size: 13px;
+			color: var(--text-medium);
+			margin-top: 4px;
+		}
+
+		/* ========= BIG BOLD FEATURE CARDS ========= */
+		.cards-cluster-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+			gap: 20px;
+			margin-bottom: 32px;
+		}
+
+		.bold-feature-card {
+			background: var(--surface);
+			border-radius: var(--radius-surface);
+			padding: 24px 24px;
+			box-shadow: var(--shadow-1);
+			transition: box-shadow 200ms var(--ease-standard);
+			border-left: 4px solid transparent;
+		}
+
+		.bold-feature-card:hover {
+			box-shadow: var(--shadow-4);
+		}
+
+		.bold-feature-card.tier-hw { border-left-color: var(--accent-green); }
+		.bold-feature-card.tier-kr { border-left-color: var(--primary); }
+		.bold-feature-card.tier-sy { border-left-color: var(--accent-cyan); }
+		.bold-feature-card.tier-de { border-left-color: var(--accent-purple); }
+
+		.card-kicker {
+			font-size: 12px;
+			font-weight: 500;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			color: var(--text-medium);
+			margin-bottom: 6px;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		.card-hero-text {
+			font-size: 26px;
+			font-weight: 500;
+			line-height: 32px;
+			color: var(--text-high);
+			margin-bottom: 8px;
+		}
+
+		.card-subtext {
+			font-size: 14px;
+			line-height: 22px;
+			color: var(--text-medium);
+		}
+
+		/* ========= MASTER ARCHITECTURE SECTION ========= */
+		.tree-section-paper {
+			background: var(--surface);
+			border-radius: var(--radius-surface);
+			box-shadow: var(--shadow-1);
+			padding: 32px;
+			margin-bottom: 32px;
+		}
+
+		.section-head-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 20px;
+			flex-wrap: wrap;
+			gap: 16px;
+			border-bottom: 1px solid var(--divider);
+			padding-bottom: 18px;
+		}
+
+		.section-head-title {
+			font-size: 26px;
+			font-weight: 400;
+			color: var(--text-high);
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.section-head-desc {
+			font-size: 15px;
+			color: var(--text-medium);
+			margin-top: 4px;
+		}
+
+		/* Clickable Tree Canvas Card */
+		.tree-preview-card {
+			position: relative;
+			background: var(--surface-secondary);
+			border-radius: var(--radius-surface);
+			padding: 24px;
+			cursor: pointer;
+			border: 2px dashed rgba(63, 81, 181, 0.25);
+			transition: border-color 200ms var(--ease-standard), box-shadow 200ms;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			overflow: hidden;
+		}
+
+		.tree-preview-card:hover {
+			border-color: var(--primary);
+			box-shadow: var(--shadow-2);
+		}
+
+		.tree-preview-badge {
+			position: absolute;
+			top: 16px;
+			right: 16px;
+			background: var(--primary);
+			color: var(--on-primary);
+			font-size: 12px;
+			font-weight: 500;
+			padding: 6px 12px;
+			border-radius: var(--radius-surface);
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			box-shadow: var(--shadow-2);
+		}
+
+		.tree-preview-svg-wrap {
+			width: 100%;
+			overflow-x: auto;
+			padding: 10px 0;
+			display: flex;
+			justify-content: center;
+		}
+
+		.tree-preview-svg-wrap svg {
+			min-width: 720px;
+			max-width: 100%;
+			height: auto;
+		}
+
+		/* 9-Subsystem Skimmable Grid */
+		.subsystem-cards-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+			gap: 18px;
+			margin-top: 24px;
+		}
+
+		.subsystem-node-card {
+			background: var(--surface-secondary);
+			border-radius: var(--radius-surface);
+			padding: 20px 22px;
+			border-top: 3px solid var(--primary);
+		}
+
+		.subsystem-node-kicker {
+			font-size: 12px;
+			font-weight: 500;
+			text-transform: uppercase;
+			letter-spacing: 0.8px;
+			color: var(--primary);
+			display: block;
+			margin-bottom: 4px;
+		}
+
+		.subsystem-node-title {
+			font-size: 20px;
+			font-weight: 500;
+			color: var(--text-high);
+			margin-bottom: 8px;
+		}
+
+		.subsystem-node-bullets {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.subsystem-node-bullets li {
+			font-size: 13.5px;
+			line-height: 22px;
+			color: var(--text-medium);
+			display: block;
+			word-wrap: break-word;
+		}
+
+		.subsystem-node-bullets li strong {
+			color: var(--text-high);
+			font-weight: 500;
+			margin-right: 4px;
+		}
+
+		code {
+			font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+			font-size: 12.5px;
+			background: rgba(0, 0, 0, 0.06);
+			color: var(--primary);
+			padding: 2px 6px;
+			border-radius: var(--radius-surface);
+			white-space: nowrap;
+		}
+
+		[data-theme="dark"] code {
+			background: rgba(255, 255, 255, 0.1);
+			color: #80cbc4;
+		}
+
+		/* ========= READINESS TRACKER (SKIMMABLE) ========= */
+		.progress-stack {
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+			margin-top: 18px;
+		}
+
+		.progress-entry {
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+		}
+
+		.progress-meta {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			font-size: 15px;
+		}
+
+		.progress-label {
+			font-weight: 500;
+			color: var(--text-high);
+		}
+
+		.progress-val {
+			font-size: 14px;
+			color: var(--text-medium);
+			font-weight: 500;
+		}
+
+		.md1-linear-track {
+			height: 8px;
+			background-color: rgba(0, 0, 0, 0.08);
+			border-radius: var(--radius-surface);
+			overflow: hidden;
+		}
+
+		[data-theme="dark"] .md1-linear-track {
+			background-color: rgba(255, 255, 255, 0.12);
+		}
+
+		.md1-linear-indicator {
+			height: 100%;
+			border-radius: var(--radius-surface);
+			transition: width 600ms var(--ease-standard);
+		}
+
+		.bar-green  { background-color: var(--accent-green); }
+		.bar-blue   { background-color: var(--primary); }
+		.bar-amber  { background-color: var(--accent-amber); }
+		.bar-red    { background-color: var(--accent-red); }
+		.bar-purple { background-color: var(--accent-purple); }
+
+		/* ========= CIRCULAR COPY BUTTONS (TRANSPARENT, NO BACKGROUND) ========= */
+		.circle-copy-btn {
+			width: 44px;
+			height: 44px;
+			border-radius: var(--radius-circle);
+			background: transparent;
+			border: none;
+			color: var(--text-medium);
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			outline: none;
+			padding: 0;
+			margin: 0;
+			transition: background-color 150ms var(--ease-standard), color 150ms, transform 150ms;
+		}
+
+		.circle-copy-btn:hover {
+			background-color: var(--state-hover);
+			color: var(--primary);
+		}
+
+		.circle-copy-btn:active {
+			background-color: var(--state-pressed);
+			transform: scale(0.92);
+		}
+
+		.circle-copy-btn.copied {
+			color: var(--accent-green) !important;
+		}
+
+		/* Regular Buttons */
+		.md1-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			height: 38px;
+			min-width: 88px;
+			padding: 0 18px;
+			border: none;
+			border-radius: var(--radius-surface);
+			font: 500 14px/16px Roboto;
+			letter-spacing: 0.5px;
+			text-transform: uppercase;
+			cursor: pointer;
+			outline: none;
+			user-select: none;
+			transition: box-shadow 200ms var(--ease-standard), background-color 200ms var(--ease-standard);
+		}
+
+		.md1-btn-raised {
+			background-color: var(--primary);
+			color: var(--on-primary);
+			box-shadow: var(--shadow-2);
+		}
+
+		.md1-btn-raised:hover {
+			box-shadow: var(--shadow-4);
+		}
+
+		/* ========= EXPANSION PANELS (ACCORDIONS) ========= */
+		.expansion-panels-stack {
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+			margin-top: 24px;
+		}
+
+		details.md1-expansion-panel {
+			background: var(--surface);
+			border-radius: var(--radius-surface);
+			box-shadow: var(--shadow-1);
+			transition: box-shadow 200ms var(--ease-standard), margin 200ms var(--ease-standard);
+			overflow: hidden;
+		}
+
+		details.md1-expansion-panel[open] {
+			box-shadow: var(--shadow-4);
+			margin: 8px 0;
+		}
+
+		summary.expansion-header {
+			list-style: none;
+			padding: 20px 24px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			cursor: pointer;
+			user-select: none;
+			transition: background-color 150ms var(--ease-standard);
+		}
+
+		summary.expansion-header::-webkit-details-marker {
+			display: none;
+		}
+
+		summary.expansion-header:hover {
+			background-color: var(--state-hover);
+		}
+
+		.panel-title-area {
+			display: flex;
+			align-items: center;
+			gap: 16px;
+			flex: 1;
+		}
+
+		.panel-badge {
+			width: 36px;
+			height: 36px;
+			border-radius: var(--radius-circle);
+			background-color: var(--primary-light);
+			color: var(--primary-dark);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: 700;
+			font-size: 14px;
+			flex-shrink: 0;
+		}
+
+		[data-theme="dark"] .panel-badge {
+			background-color: var(--primary-dark);
+			color: #FFFFFF;
+		}
+
+		.panel-hero-title {
+			font-size: 20px;
+			font-weight: 500;
+			color: var(--text-high);
+			letter-spacing: 0.15px;
+		}
+
+		.panel-actions-area {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.expand-icon {
+			color: var(--text-medium);
+			transition: transform 200ms var(--ease-standard);
+		}
+
+		details[open] .expand-icon {
+			transform: rotate(180deg);
+			color: var(--primary);
+		}
+
+		details::details-content {
+			interpolate-size: allow-keywords;
+			overflow: clip;
+			contain: layout;
+			transition: block-size 250ms var(--ease-standard), content-visibility 250ms var(--ease-standard);
+			transition-behavior: allow-discrete;
+		}
+
+		details:not([open])::details-content {
+			block-size: 0;
+		}
+
+		.panel-body {
+			padding: 0 28px 28px;
+			border-top: 1px solid var(--divider);
+			margin-top: 4px;
+		}
+
+		/* Plain-English Callout Box (Paper Sheet) */
+		.plain-callout {
+			background: var(--surface-secondary);
+			border-left: 4px solid var(--primary);
+			padding: 16px 20px;
+			border-radius: 0 var(--radius-surface) var(--radius-surface) 0;
+			margin: 20px 0;
+			font-size: 15px;
+			line-height: 24px;
+			color: var(--text-high);
+		}
+
+		.plain-callout strong {
+			color: var(--primary);
+			font-weight: 500;
+		}
+
+		/* Technical Details Box */
+		.tech-breakdown {
+			background: rgba(63, 81, 181, 0.05);
+			border: 1px solid rgba(63, 81, 181, 0.2);
+			border-radius: var(--radius-surface);
+			padding: 18px 22px;
+			margin: 18px 0;
+			font-size: 14.5px;
+			line-height: 23px;
+		}
+
+		[data-theme="dark"] .tech-breakdown {
+			background: rgba(121, 134, 203, 0.08);
+			border-color: rgba(121, 134, 203, 0.3);
+		}
+
+		.tech-breakdown h4 {
+			font-size: 16px;
+			font-weight: 500;
+			color: var(--primary);
+			margin-bottom: 8px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.tech-breakdown ul {
+			list-style: none;
+			padding: 0;
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+		}
+
+		.tech-breakdown li::before {
+			content: "▪";
+			color: var(--primary);
+			display: inline-block;
+			width: 14px;
+		}
+
+		/* Step Execution Flow */
+		.steps-container {
+			display: flex;
+			flex-direction: column;
+			gap: 14px;
+			margin: 20px 0;
+		}
+
+		.step-paper {
+			background: var(--surface-secondary);
+			border-radius: var(--radius-surface);
+			padding: 18px 20px;
+			display: flex;
+			gap: 16px;
+			align-items: flex-start;
+		}
+
+		.step-num {
+			width: 30px;
+			height: 30px;
+			border-radius: var(--radius-circle);
+			background: var(--primary);
+			color: var(--on-primary);
+			font-weight: 700;
+			font-size: 14px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-shrink: 0;
+		}
+
+		.step-details {
+			flex: 1;
+		}
+
+		.step-heading {
+			font-size: 16px;
+			font-weight: 500;
+			color: var(--text-high);
+			margin-bottom: 6px;
+		}
+
+		.step-copy {
+			font-size: 14px;
+			line-height: 22px;
+			color: var(--text-medium);
+		}
+
+		/* Terminal Block with Copy Button */
+		.md1-terminal-wrap {
+			position: relative;
+			margin-top: 12px;
+		}
+
+		.md1-terminal {
+			background: var(--code-bg);
+			border-radius: var(--radius-surface);
+			padding: 14px 18px;
+			padding-right: 52px;
+			font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+			font-size: 13px;
+			line-height: 20px;
+			color: var(--code-text);
+			overflow-x: auto;
+			box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+			user-select: all;
+			white-space: pre-wrap;
+		}
+
+		.terminal-copy-btn,
+		button.terminal-copy-btn[data-ripple] {
+			position: absolute !important;
+			top: 8px !important;
+			right: 8px !important;
+			left: auto !important;
+			bottom: auto !important;
+			margin: 0 !important;
+			width: 32px;
+			height: 32px;
+			background: rgba(255, 255, 255, 0.08);
+			border: 1px solid rgba(255, 255, 255, 0.15);
+			border-radius: var(--radius-circle);
+			color: rgba(255, 255, 255, 0.75);
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			z-index: 5;
+			transition: background-color 150ms var(--ease-standard), color 150ms, border-color 150ms, transform 100ms;
+		}
+
+		.terminal-copy-btn:hover,
+		button.terminal-copy-btn[data-ripple]:hover {
+			background: rgba(255, 255, 255, 0.22);
+			color: #FFFFFF;
+			border-color: rgba(255, 255, 255, 0.35);
+		}
+
+		.terminal-copy-btn:active,
+		button.terminal-copy-btn[data-ripple]:active {
+			transform: scale(0.92);
+		}
+
+		.terminal-copy-btn i {
+			font-size: 16px;
+			line-height: 1;
+			display: inline-block;
+			pointer-events: none;
+		}
+
+		/* Prompt Copy Bar at bottom of card */
+		.card-prompt-bar {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 14px 18px;
+			background: var(--surface-secondary);
+			border: 1px solid var(--divider);
+			border-radius: var(--radius-surface);
+			margin-top: 20px;
+		}
+
+		.card-prompt-label {
+			font-size: 14px;
+			font-weight: 500;
+			color: var(--text-high);
+		}
+
+		/* ========= MATERIAL ENLARGE DIALOG (24dp Elevation) ========= */
+		dialog.md1-dialog {
+			display: none;
+			position: fixed;
+			inset: 0;
+			margin: auto;
+			width: 94vw;
+			max-width: 1300px;
+			height: 90vh;
+			max-height: 900px;
+			background: var(--surface);
+			border: none;
+			border-radius: var(--radius-surface);
+			box-shadow: var(--shadow-24);
+			padding: 0;
+			z-index: 1000;
+			overflow: hidden;
+		}
+
+		dialog.md1-dialog:not([open]) {
+			display: none !important;
+		}
+
+		dialog.md1-dialog[open] {
+			display: flex !important;
+			flex-direction: column;
+		}
+
+		dialog.md1-dialog::backdrop {
+			background: var(--scrim);
+			backdrop-filter: blur(2px);
+		}
+
+		.dialog-header {
+			height: 60px;
+			padding: 0 20px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			border-bottom: 1px solid var(--divider);
+			background: var(--surface);
+		}
+
+		.dialog-title {
+			font-size: 20px;
+			font-weight: 500;
+			color: var(--text-high);
+		}
+
+		.dialog-tools {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.dialog-tools .icon-btn {
+			width: 40px;
+			height: 40px;
+			color: var(--text-high);
+			background: transparent;
+			border-radius: var(--radius-circle);
+			cursor: pointer;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			transition: background-color 150ms var(--ease-standard), color 150ms;
+		}
+
+		.dialog-tools .icon-btn:hover {
+			background-color: var(--state-hover);
+			color: var(--primary);
+		}
+
+		#dialog-close-btn {
+			background: rgba(0, 0, 0, 0.08);
+			color: var(--text-high);
+		}
+
+		[data-theme="dark"] #dialog-close-btn {
+			background: rgba(255, 255, 255, 0.12);
+		}
+
+		#dialog-close-btn:hover {
+			background-color: var(--accent-red) !important;
+			color: #FFFFFF !important;
+		}
+
+		.dialog-canvas {
+			flex: 1;
+			position: relative;
+			background: var(--surface-secondary);
+			background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+			background-size: 24px 24px;
+			overflow: hidden;
+			padding: 0;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			cursor: grab;
+			user-select: none;
+			touch-action: none;
+		}
+
+		[data-theme="dark"] .dialog-canvas {
+			background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+		}
+
+		.dialog-canvas.is-dragging {
+			cursor: grabbing !important;
+		}
+
+		.dialog-canvas-inner {
+			position: absolute;
+			transform-origin: center center;
+			will-change: transform;
+			display: inline-flex;
+			justify-content: center;
+			align-items: center;
+			transition: transform 60ms ease-out;
+		}
+
+		.dialog-canvas-inner.dragging {
+			transition: none !important;
+		}
+
+		.dialog-canvas-inner svg {
+			min-width: 1000px;
+			max-width: none;
+			height: auto;
+			pointer-events: none;
+			filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08));
+		}
+
+		/* ========= MATERIAL DATA TABLE ========= */
+		.table-card {
+			background: var(--surface);
+			border-radius: var(--radius-surface);
+			box-shadow: var(--shadow-1);
+			padding: 0;
+			overflow-x: auto;
+			margin-top: 20px;
+		}
+
+		.md1-data-table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 14.5px;
+			text-align: left;
+		}
+
+		.md1-data-table th {
+			height: 54px;
+			padding: 0 20px;
+			font-weight: 500;
+			font-size: 13px;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			color: var(--text-medium);
+			border-bottom: 1px solid var(--divider);
+			background: var(--surface);
+		}
+
+		.md1-data-table td {
+			height: 52px;
+			padding: 10px 20px;
+			border-bottom: 1px solid var(--divider);
+			color: var(--text-high);
+			transition: background-color 150ms var(--ease-standard);
+		}
+
+		.md1-data-table tr:hover td {
+			background-color: var(--state-hover);
+		}
+
+		.md1-data-table tr:last-child td {
+			border-bottom: none;
+		}
+
+		/* Directives Callout Card */
+		.directives-card {
+			background: var(--surface);
+			border-radius: var(--radius-surface);
+			box-shadow: var(--shadow-1);
+			padding: 24px 28px;
+			margin-top: 32px;
+			display: flex;
+			gap: 18px;
+			align-items: flex-start;
+		}
+
+		.directives-icon {
+			color: var(--accent-amber);
+			font-size: 32px;
+			flex-shrink: 0;
+			margin-top: 2px;
+		}
+
+		.directives-body h3 {
+			font-size: 18px;
+			font-weight: 500;
+			color: var(--text-high);
+			margin-bottom: 8px;
+		}
+
+		.directives-body p {
+			font-size: 14.5px;
+			line-height: 23px;
+			color: var(--text-medium);
+		}
+
+		/* ========= MATERIAL SNACKBAR (6dp Elevation) ========= */
+		.md1-snackbar {
+			position: fixed;
+			bottom: 24px;
+			left: 24px;
+			background: #323232;
+			color: #FFFFFF;
+			font-size: 14px;
+			padding: 14px 24px;
+			border-radius: var(--radius-surface);
+			box-shadow: var(--shadow-6);
+			z-index: 1050;
+			opacity: 0;
+			transform: translateY(20px);
+			pointer-events: none;
+			transition: opacity 250ms var(--ease-decelerate), transform 250ms var(--ease-decelerate);
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.md1-snackbar.show {
+			opacity: 1;
+			transform: translateY(0);
+		}
+
+		/* ========= FLOATING ACTION BUTTON (EXACT PIXEL CENTERING) ========= */
+		.md1-fab {
+			position: fixed;
+			bottom: 24px;
+			right: 24px;
+			z-index: 99;
+			width: 56px;
+			height: 56px;
+			padding: 0;
+			margin: 0;
+			border: none;
+			border-radius: var(--radius-circle);
+			background-color: var(--accent);
+			color: var(--on-accent);
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			box-shadow: var(--shadow-6);
+			cursor: pointer;
+			outline: none;
+			line-height: 0;
+			transition: box-shadow 200ms var(--ease-standard), transform 200ms var(--ease-standard);
+		}
+
+		.md1-fab:hover {
+			box-shadow: var(--shadow-8);
+		}
+
+		.md1-fab:active {
+			box-shadow: var(--shadow-12);
+		}
+
+		.md1-fab .material-icons {
+			width: 24px;
+			height: 24px;
+			font-size: 24px;
+			line-height: 24px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin: 0;
+			padding: 0;
+			pointer-events: none;
+		}
+
+		/* ========= RADIAL TOUCH RIPPLE MECHANICS ========= */
+		[data-ripple] {
+			position: relative;
+			overflow: hidden;
+			-webkit-tap-highlight-color: transparent;
+		}
+
+		.md1-ripple {
+			position: absolute;
+			border-radius: 50%;
+			pointer-events: none;
+			transform: scale(0);
+			background-color: currentColor;
+			opacity: 0.16;
+			animation: md1-ripple-expand 350ms var(--ease-standard) forwards;
+		}
+
+		.md1-ripple.fade-out {
+			animation: md1-ripple-fade 200ms linear forwards;
+		}
+
+		@keyframes md1-ripple-expand {
+			to { transform: scale(1); }
+		}
+
+		@keyframes md1-ripple-fade {
+			from { opacity: 0.16; }
+			to { opacity: 0; }
+		}
+
+		footer {
+			margin-top: 48px;
+			text-align: center;
+			font-size: 14px;
+			color: var(--text-medium);
+			padding: 24px 0;
+			border-top: 1px solid var(--divider);
+		}
+	</style>
+</head>
+<body>
+
+	<!-- Top App Bar (Indigo 500, Title, Dynamic Scroll Elevation) -->
+	<header class="md1-app-bar" id="app-bar">
+		<div class="app-bar-left">
+			<button class="icon-btn" data-ripple aria-label="Device Icon">
+				<i class="material-icons">developer_board</i>
+			</button>
+			<div class="app-bar-title">ginkgo Mainline Linux — System Atlas & Roadmap</div>
+		</div>
+		<div class="app-bar-actions">
+			<button class="icon-btn" id="theme-toggle" data-ripple aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
+				<i class="material-icons" id="theme-icon">brightness_medium</i>
+			</button>
+			<button class="icon-btn" id="scroll-top-btn" data-ripple aria-label="Scroll to top" title="Scroll to Top">
+				<i class="material-icons">arrow_upward</i>
+			</button>
+		</div>
+	</header>
+
+	<main class="page-container">
+
+		<!-- Hero Paper Banner (2dp Elevation) -->
+		<section class="hero-paper">
+			<div class="hero-kicker">
+				<i class="material-icons" style="font-size: 18px;">verified</i>
+				Mainline Bring-up Status: Baseline Solid (#142 SMP PREEMPT)
+			</div>
+			<h1 class="hero-title">Redmi Note 8 (ginkgo) — Hardware Architecture & Roadmap</h1>
+			<p class="hero-desc">
+				Your phone has evolved into an autonomous 64-bit Linux pocket workstation running mainline kernel 7.0 and Ubuntu 26.04 LTS. Below is the interactive hardware tree, component readiness status, and battle-tested roadmaps.
+			</p>
+
+			<div class="hero-figures-grid">
+				<div class="hero-figure-card">
+					<span class="figure-kicker">Operating System</span>
+					<div class="figure-headline">Ubuntu 26.04 LTS</div>
+					<div class="figure-sub"><code>resolute</code> aarch64 on ext4</div>
+				</div>
+				<div class="hero-figure-card">
+					<span class="figure-kicker">Core Kernel</span>
+					<div class="figure-headline">Linux 7.0.0-00001</div>
+					<div class="figure-sub">#142 SMP PREEMPT (Clean)</div>
+				</div>
+				<div class="hero-figure-card">
+					<span class="figure-kicker">Memory & Swap</span>
+					<div class="figure-headline">4 GB RAM + 2 GB ZRAM</div>
+					<div class="figure-sub">LZ4 compressed (priority 100)</div>
+				</div>
+				<div class="hero-figure-card" style="border-left-color: var(--accent-green);">
+					<span class="figure-kicker">System Health</span>
+					<div class="figure-headline" style="color: var(--accent-green);">0 Failed Units</div>
+					<div class="figure-sub">All systemd services green</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- BIG BOLD HIGHLIGHT CARDS (Skimmable, No Cluttered Badges) -->
+		<div class="cards-cluster-grid">
+
+			<div class="bold-feature-card tier-hw">
+				<div class="card-kicker"><i class="material-icons" style="font-size: 16px;">memory</i> Physical Hardware Layer</div>
+				<div class="card-hero-text">Snapdragon 665</div>
+				<div class="card-subtext">
+					Qualcomm SM6125 @ 11nm LPP FinFET · Tianma 1080p DSI · Novatek NT36672A SPI Touch · Dual PMIC PM6125/PMI632 · WCN3990
+				</div>
+			</div>
+
+			<div class="bold-feature-card tier-kr">
+				<div class="card-kicker"><i class="material-icons" style="font-size: 16px;">settings_suggest</i> Kernel Architecture</div>
+				<div class="card-hero-text">Linux 7.0 Mainline</div>
+				<div class="card-subtext">
+					Deployed <code>#142</code> kernel with out-of-tree modules: <code>zram.ko</code>, <code>rtc-pm8xxx.ko</code>, <code>qcom-pmi632-qg.ko</code>, and <code>ginkgo_touch_sync.ko</code>
+				</div>
+			</div>
+
+			<div class="bold-feature-card tier-sy">
+				<div class="card-kicker"><i class="material-icons" style="font-size: 16px;">speed</i> System Optimization</div>
+				<div class="card-hero-text">Mitigations=Off</div>
+				<div class="card-subtext">
+					Hardware Spectre/Meltdown pipeline flushes permanently disabled to maximize CPU throughput on Kryo 260 out-of-order cores
+				</div>
+			</div>
+
+			<div class="bold-feature-card tier-de">
+				<div class="card-kicker"><i class="material-icons" style="font-size: 16px;">desktop_windows</i> Desktop Compositor</div>
+				<div class="card-hero-text">KDE Plasma 6 (Wayland)</div>
+				<div class="card-subtext">
+					SDDM Autologin user <code>ginkgo</code>, KWin Wayland, Xwayland socket <code>/tmp/.X11-unix/X0</code> (:0), and hardware-accelerated Adreno 610 @ 60 FPS
+				</div>
+			</div>
+
+		</div>
+
+		<!-- MASTER ARCHITECTURE TREE (CLICKABLE TO ENLARGE IN DIALOG) -->
+		<section class="tree-section-paper" id="hardware-tree-section">
+			<div class="section-head-row">
+				<div>
+					<h2 class="section-head-title">
+						<i class="material-icons" style="color: var(--primary);">account_tree</i>
+						Master Hardware Architecture Tree
+					</h2>
+					<p class="section-head-desc">
+						Click the diagram below to enlarge it in a full-screen interactive modal dialog with zoom controls.
+					</p>
+				</div>
+				<div>
+					<button type="button" class="md1-btn md1-btn-raised" id="open-tree-dialog-btn" data-ripple>
+						<i class="material-icons">zoom_in</i>
+						<span>Enlarge Tree</span>
+					</button>
+				</div>
+			</div>
+
+			<!-- Clickable Preview Card -->
+			<div class="tree-preview-card" id="tree-card-trigger" title="Click to enlarge diagram">
+				<div class="tree-preview-badge">
+					<i class="material-icons" style="font-size: 16px;">fullscreen</i>
+					Click to Enlarge
+				</div>
+				<div class="tree-preview-svg-wrap" id="tree-mermaid-source">
+					<div class="mermaid" id="main-mermaid-diagram">
+flowchart TD
+    classDef root fill:#3F51B5,stroke:#303F9F,stroke-width:2px,color:#fff;
+    classDef comp fill:#FFFFFF,stroke:#3F51B5,stroke-width:2px,color:#000;
+    classDef dsp fill:#FFF3E0,stroke:#FF9800,stroke-width:2px,color:#E65100;
+    classDef pmic fill:#E8F5E9,stroke:#4CAF50,stroke-width:2px,color:#1B5E20;
+
+    SoC["Qualcomm SM6125 (Snapdragon 665 @ 11nm)"]:::root
+
+    SoC --> CPU["Kryo 260 Octa-Core<br/>4x A73 (2.0GHz) + 4x A53 (1.8GHz)"]:::comp
+    SoC --> GPU["Adreno 610 3D GPU<br/>Freedreno KMS (/dev/dri/card0)"]:::comp
+    SoC --> DPU["Display DPU 5.0<br/>Tianma 1080x2340 @ 60Hz DSI"]:::comp
+    SoC --> Touch["Novatek NT36672A Touch<br/>SPI2 Bus (8.0 MHz, Mode 0)"]:::comp
+    SoC --> Storage["64GB eMMC 5.1 Storage<br/>SDHCI-MSM v5 + 2GB ZRAM"]:::comp
+    SoC --> SPMI["Dual PMIC via SPMI<br/>PM6125 (RTC) + PMI632 (Fuel Gauge)"]:::pmic
+    SoC --> WCN["Qualcomm WCN3990<br/>5GHz Wi-Fi + Bluetooth 5.0 (ROM)"]:::comp
+    SoC --> USB["DWC3 Dual-Role Type-C<br/>RNDIS Gadget + 5V Host OTG"]:::comp
+    SoC --> DSPs["Hexagon QDSP6 Remoteprocs<br/>MPSS (Modem) + ADSP (Audio)"]:::dsp
+
+    CPU --> CPU_OSM["qcom-cpufreq-hw / mitigations=off"]
+    GPU --> GPU_MESA["Mesa Gallium msm_dri.so / KWin 60 FPS"]
+    DPU --> DPU_LCDB["PMI632 LCDB (±5.4V) + KTD3136 Backlight"]
+    Touch --> Touch_Sync["ginkgo_touch_sync.ko (SRAM Reload <300ms)"]
+    Storage --> Storage_Root["userdata (mmcblk0p87) mounted at /"]
+    SPMI --> SPMI_Nodes["rtc0 (/dev/rtc0) & qcom-battery"]
+    WCN --> WCN_Net["wlan0 (292.5 Mbps) & PipeWire A2DP Audio"]
+    USB --> USB_IP["192.168.7.2 (SSH) & 192.168.137.50 (ICS)"]
+    DSPs --> DSP_QRTR["QRTR IPC Router + rmtfs (/dev/qcom_rmtfs_mem1)"]
+					</div>
+				</div>
+			</div>
+
+			<!-- Spacious 9-Subsystem Architecture Grid (Skimmable Bullets) -->
+			<div class="subsystem-cards-grid">
+				
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">Compute Complex</span>
+					<div class="subsystem-node-title">Kryo 260 Octa-Core</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>Cores:</strong> 4x Cortex-A73 (2.02 GHz) + 4x Cortex-A53 (1.80 GHz)</li>
+						<li><strong>Directives:</strong> <code>mitigations=off</code> + 1ms timer ticks (<code>CONFIG_HZ_1000=y</code>)</li>
+						<li><strong>Status:</strong> Stable schedutil & performance power modes</li>
+					</ul>
+				</div>
+
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">3D Graphics</span>
+					<div class="subsystem-node-title">Adreno 610 GPU</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>Clock:</strong> 320 MHz to 950 MHz with GMU wrapper</li>
+						<li><strong>Firmware:</strong> Vendor ZAP shader (<code>a610_zap.mdt</code>) + SQE microcode</li>
+						<li><strong>Status:</strong> 60 FPS fluid rendering on KWin Wayland</li>
+					</ul>
+				</div>
+
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">Display Engine</span>
+					<div class="subsystem-node-title">Tianma NT36672A DSI</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>Resolution:</strong> 1080×2340 @ 60Hz 4-lane video mode</li>
+						<li><strong>Power:</strong> PMI632 LCDB (±5.4V) + KTD3136 backlight on I2C-0</li>
+						<li><strong>Status:</strong> Rock solid, DPU FIFO overflow eliminated</li>
+					</ul>
+				</div>
+
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">Touch Interaction</span>
+					<div class="subsystem-node-title">Novatek NT36672A SPI</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>Bus:</strong> SPI2 (<code>&spi2</code> @ 8.0 MHz, Mode 0)</li>
+						<li><strong>Memory:</strong> Volatile SRAM (reloaded in &lt;300ms by <code>ginkgo_touch_sync.ko</code>)</li>
+						<li><strong>Status:</strong> Responsive multi-touch and gestures active</li>
+					</ul>
+				</div>
+
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">Storage & Swap</span>
+					<div class="subsystem-node-title">64GB eMMC 5.1 + ZRAM</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>Controller:</strong> SDHCI v5 with ARM SMMU (<code>mmcblk0</code>)</li>
+						<li><strong>Swap:</strong> 2 GB LZ4 compressed RAM swap (priority 100)</li>
+						<li><strong>Status:</strong> Zero readahead latency, 0 failed mounts</li>
+					</ul>
+				</div>
+
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">Power Architecture</span>
+					<div class="subsystem-node-title">PM6125 + PMI632 PMICs</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>PM6125:</strong> 24 system LDOs + hardware RTC (<code>/dev/rtc0</code>)</li>
+						<li><strong>PMI632:</strong> Battery fuel gauge (<code>qgauge@4800</code>) + 5V OTG boost</li>
+						<li><strong>Status:</strong> Full battery telemetry, RTC ticking active</li>
+					</ul>
+				</div>
+
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">Wireless Radio</span>
+					<div class="subsystem-node-title">Qualcomm WCN3990</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>Wi-Fi:</strong> 5GHz 802.11ac (<code>ath10k_snoc</code>, 292.5 Mbps confirmed)</li>
+						<li><strong>Bluetooth:</strong> Bluetooth 5.0 in ROM mode with PipeWire A2DP audio</li>
+						<li><strong>Status:</strong> Stable BD address <code>86:D2:39:0F:1E:EE</code></li>
+					</ul>
+				</div>
+
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">USB Connectivity</span>
+					<div class="subsystem-node-title">DWC3 Dual-Role Type-C</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>Gadget Mode:</strong> RNDIS (<code>192.168.7.2</code> SSH & <code>192.168.137.50</code> ICS)</li>
+						<li><strong>Host Mode:</strong> OTG keyboards & drives via <code>ginkgo-usb-host.sh</code></li>
+						<li><strong>Status:</strong> Primary high-speed link rock solid</li>
+					</ul>
+				</div>
+
+				<div class="subsystem-node-card">
+					<span class="subsystem-node-kicker">Hexagon Processors</span>
+					<div class="subsystem-node-title">QDSP6 Remoteprocs</div>
+					<ul class="subsystem-node-bullets">
+						<li><strong>MPSS:</strong> Modem baseband @ <code>0x06080000</code> (126MB RAM) for Wi-Fi</li>
+						<li><strong>ADSP:</strong> Audio engine @ <code>0x0a400000</code> (34MB RAM, firmware extracted)</li>
+						<li><strong>CDSP:</strong> Compute coprocessor @ <code>0x0b300000</code> (30MB RAM)</li>
+					</ul>
+				</div>
+
+			</div>
+		</section>
+
+		<!-- READINESS TRACKER CARD -->
+		<section class="tree-section-paper">
+			<div class="section-head-row">
+				<div>
+					<h2 class="section-head-title">
+						<i class="material-icons" style="color: var(--primary);">assessment</i>
+						Component Readiness Tracker
+					</h2>
+					<p class="section-head-desc">
+						Current completion metrics across all hardware and software domains.
+					</p>
+				</div>
+			</div>
+
+			<div class="progress-stack">
+				
+				<div class="progress-entry">
+					<div class="progress-meta">
+						<span class="progress-label">Display & GPU Acceleration (Mesa Freedreno)</span>
+						<span class="progress-val">100% (Working)</span>
+					</div>
+					<div class="md1-linear-track"><div class="md1-linear-indicator bar-green" style="width: 100%;"></div></div>
+				</div>
+
+				<div class="progress-entry">
+					<div class="progress-meta">
+						<span class="progress-label">Touchscreen & Multi-Touch Gestures (Novatek SPI)</span>
+						<span class="progress-val">95% (Stable)</span>
+					</div>
+					<div class="md1-linear-track"><div class="md1-linear-indicator bar-green" style="width: 95%;"></div></div>
+				</div>
+
+				<div class="progress-entry">
+					<div class="progress-meta">
+						<span class="progress-label">RAM & Compressed Swap (2GB LZ4 ZRAM)</span>
+						<span class="progress-val">100% (Active, prio 100)</span>
+					</div>
+					<div class="md1-linear-track"><div class="md1-linear-indicator bar-green" style="width: 100%;"></div></div>
+				</div>
+
+				<div class="progress-entry">
+					<div class="progress-meta">
+						<span class="progress-label">Network (USB RNDIS Dual-IP + 5GHz Wi-Fi)</span>
+						<span class="progress-val">90% (Dual-path)</span>
+					</div>
+					<div class="md1-linear-track"><div class="md1-linear-indicator bar-blue" style="width: 90%;"></div></div>
+				</div>
+
+				<div class="progress-entry">
+					<div class="progress-meta">
+						<span class="progress-label">Sleep & Power Management (RTC Wakeup / S2idle)</span>
+						<span class="progress-val">40% (Suspend Pending)</span>
+					</div>
+					<div class="md1-linear-track"><div class="md1-linear-indicator bar-amber" style="width: 40%;"></div></div>
+				</div>
+
+				<div class="progress-entry">
+					<div class="progress-meta">
+						<span class="progress-label">Audio & Sound Output (PipeWire / BT A2DP)</span>
+						<span class="progress-val">35% (Wireless Working)</span>
+					</div>
+					<div class="md1-linear-track"><div class="md1-linear-indicator bar-amber" style="width: 35%;"></div></div>
+				</div>
+
+				<div class="progress-entry">
+					<div class="progress-meta">
+						<span class="progress-label">Sensors (BMI160 IMU + LTR559 Light Proxy)</span>
+						<span class="progress-val">30% (I2C Mapped)</span>
+					</div>
+					<div class="md1-linear-track"><div class="md1-linear-indicator bar-purple" style="width: 30%;"></div></div>
+				</div>
+
+				<div class="progress-entry">
+					<div class="progress-meta">
+						<span class="progress-label">Cellular: 4G LTE & Calls (MPSS Remoteproc)</span>
+						<span class="progress-val">20% (Modem Boots)</span>
+					</div>
+					<div class="md1-linear-track"><div class="md1-linear-indicator bar-red" style="width: 20%;"></div></div>
+				</div>
+
+			</div>
+		</section>
+
+		<!-- SECTION BAR: THE 5 STRATEGIC MILESTONES -->
+		<div class="section-head-row" style="margin-top: 36px; border-bottom: none; padding-bottom: 0;">
+			<div>
+				<h2 class="section-head-title">
+					<i class="material-icons" style="color: var(--primary);">flag</i>
+					What's Next: The 5 Strategic Milestones
+				</h2>
+				<p class="section-head-desc">
+					Skimmable breakdowns of the next engineering tasks. Click the circular copy button on any card to copy its prompt for an AI coding agent.
+				</p>
+			</div>
+			<div>
+				<button type="button" class="md1-btn md1-btn-raised" id="btn-toggle-accordions" data-ripple>
+					<i class="material-icons" style="font-size: 18px;">unfold_more</i>
+					<span>Expand All</span>
+				</button>
+			</div>
+		</div>
+
+		<!-- Expansion Panels (Accordions) -->
+		<div class="expansion-panels-stack">
+
+			<!-- Milestone 1: Audio -->
+			<details class="md1-expansion-panel" id="m-audio" open>
+				<summary class="expansion-header" data-ripple>
+					<div class="panel-title-area">
+						<div class="panel-badge">M1</div>
+						<div class="panel-hero-title">Audio & Sound Output ("Giving the Phone a Voice")</div>
+					</div>
+					<div class="panel-actions-area">
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-audio" data-ripple title="Copy coding agent prompt for Milestone 1">
+							<i class="material-icons">content_copy</i>
+						</button>
+						<i class="material-icons expand-icon">expand_more</i>
+					</div>
+				</summary>
+				<div class="panel-body">
+					<div class="plain-callout">
+						<strong>In Plain Words:</strong> Video plays at 60fps, but internal speakers and headphones are silent. The audio hardware is now fully mapped: Qualcomm WCD9370/WCD9375 on SoundWire for 3.5mm headphones, Maxim MAX98927 amplifier on I2C-0 (<code>0x3a</code>) for the loudspeaker, and PipeWire Bluetooth A2DP for wireless earbuds.
+					</div>
+
+					<div class="tech-breakdown">
+						<h4><i class="material-icons" style="font-size: 18px;">settings_voice</i> Hardware & Driver Topology</h4>
+						<ul>
+							<li><strong>ADSP Remoteproc:</strong> Hexagon QDSP6 v66 @ <code>0xab00000</code> (34MB reserved RAM at <code>0x55300000</code>).</li>
+							<li><strong>Bolero Digital Codec:</strong> <code>rx_macro</code> (SoundWire 1) + <code>tx_macro</code> (SoundWire 2). <em>WSA macro is disabled (no WSA881x).</em></li>
+							<li><strong>Analog Headset:</strong> Qualcomm WCD9370/WCD9375 Aqstic attached to Bolero SoundWire slaves.</li>
+							<li><strong>Wired Loudspeaker:</strong> Maxim MAX98927 Class-D amplifier on I2C-0 (<code>0x3a</code>, GPIO 27 reset) over Primary MI2S.</li>
+							<li><strong>Wireless Audio:</strong> WCN3990 Bluetooth 5.0 via PipeWire A2DP. <strong>Works immediately today!</strong></li>
+						</ul>
+					</div>
+
+					<div class="steps-container">
+						<div class="step-paper">
+							<div class="step-num">1</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 1: Immediate Wireless Audio via Bluetooth A2DP</h4>
+								<p class="step-copy">Because WCN3990 Bluetooth is active in ROM mode and crypto modules are loaded, WirePlumber automatically routes audio to paired wireless headphones.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">bluetoothctl pair &lt;HEADSET_MAC&gt; && bluetoothctl connect &lt;HEADSET_MAC&gt;
+wpctl status
+pw-play /usr/share/sounds/alsa/Front_Center.wav</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">2</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 2: ADSP Firmware Extraction & Remoteproc Initialization</h4>
+								<p class="step-copy">Extract <code>adsp.mdt</code> and <code>adsp.b00</code>–<code>bXX</code> from the vendor eMMC partition (<code>mmcblk0p28</code>) into <code>/lib/firmware/qcom/sm6125/xiaomi/ginkgo/</code> and add the <code>qcom,sm6115-adsp-pas</code> DTS node.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">dmesg | grep -iE 'q6v5|apr|adsp|bolero|soundwire'</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">3</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 3: ASoC Drivers & DTSI Bring-Up (WCD937x & MAX98927)</h4>
+								<p class="step-copy">Enable <code>CONFIG_SND_SOC_QCOM=m</code>, <code>CONFIG_SND_SOC_WCD937X=m</code>, and <code>CONFIG_SND_SOC_MAX98927=m</code>. Bind <code>max98927@3a</code> on <code>&qupv3_se1_i2c</code> and SoundWire slaves under Bolero.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">cat /proc/asound/cards
+i2cdetect -y -r 0   # confirms MAX98927 responds at address 0x3a</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">4</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 4: ALSA UCM2 Mixer Topology Profile Deployment</h4>
+								<p class="step-copy">Install the <code>sm6125.conf</code> and <code>HiFi.conf</code> UCM2 configuration into <code>/usr/share/alsa/ucm2/Qualcomm/sm6125/</code> to automate Speaker vs 3.5mm Headphone jack switching inside PipeWire.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">systemctl --user restart wireplumber
+alsamixer -c 0   # verify mixer controls and unmute primary DAC rails</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="card-prompt-bar">
+						<span class="card-prompt-label">Delegate this milestone to an AI coding agent</span>
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-audio" data-ripple title="Copy coding agent prompt">
+							<i class="material-icons">content_copy</i>
+						</button>
+					</div>
+				</div>
+			</details>
+
+			<!-- Milestone 2: Deep Sleep & Battery -->
+			<details class="md1-expansion-panel" id="m-power">
+				<summary class="expansion-header" data-ripple>
+					<div class="panel-title-area">
+						<div class="panel-badge">M2</div>
+						<div class="panel-hero-title">Deep Sleep & Battery Longevity ("Pocket Survival")</div>
+					</div>
+					<div class="panel-actions-area">
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-power" data-ripple title="Copy coding agent prompt for Milestone 2">
+							<i class="material-icons">content_copy</i>
+						</button>
+						<i class="material-icons expand-icon">expand_more</i>
+					</div>
+				</summary>
+				<div class="panel-body">
+					<div class="plain-callout">
+						<strong>In Plain Words:</strong> Locking your phone should drop it into a deep sleep for all-day battery life. We previously kept the display powered because the Novatek touchscreen loses its volatile firmware (SRAM) when unpowered. Our recovery driver (<code>ginkgo_touch_sync.ko</code>) reloads touch firmware in &lt;300ms on wake. Now we must formally validate end-to-end suspend/resume.
+					</div>
+
+					<div class="tech-breakdown">
+						<h4><i class="material-icons" style="font-size: 18px;">battery_charging_full</i> Power & Sleep Subsystem Architecture</h4>
+						<ul>
+							<li><strong>PM6125 Primary PMIC:</strong> System LDOs, PON power key, and hardware RTC (<code>rtc@6000</code> via <code>rtc-pm8xxx.ko</code>).</li>
+							<li><strong>PMI632 Secondary PMIC:</strong> Battery fuel gauge (<code>qgauge@4800</code> via <code>qcom-pmi632-qg.ko</code>), display LCDB bias (±5.4V), and USB VBUS boost.</li>
+							<li><strong>Volatile SRAM Recovery:</strong> <code>ginkgo_touch_sync.ko</code> streams <code>novatek_ts_tianma_fw.bin</code> over SPI SE2 upon wake.</li>
+							<li><strong>Wakeup Sources:</strong> PM6125 RTC alarm IRQ (<code>rtcwake</code>), PM8941 PON Power Key, and Volume Up (<code>pm6125_gpio5</code>).</li>
+						</ul>
+					</div>
+
+					<div class="steps-container">
+						<div class="step-paper">
+							<div class="step-num">1</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 1: Test Freeze (s2idle) Suspended State via RTC Timer</h4>
+								<p class="step-copy">Use the PM6125 hardware RTC (<code>rtc-pm8xxx.ko</code>) to put the phone into <code>s2idle</code> for 10 seconds and automatically awaken it, verifying CPU rail sleep without crashing.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">cat /sys/power/state           # freeze mem
+cat /sys/power/mem_sleep       # [s2idle] deep
+rtcwake -m freeze -s 10</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">2</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 2: Validate Touchscreen SRAM Reload on Wake</h4>
+								<p class="step-copy">Verify that <code>/lib/systemd/system-sleep/touch-wake.sh</code> triggers <code>/sys/kernel/ginkgo_touch/resume</code> upon wake and restores multi-touch tapping within 300ms.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">echo 1 > /sys/kernel/ginkgo_touch/resume
+dmesg | grep -E "ginkgo_touch_sync|nvt" | tail -n 15</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">3</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 3: Power Button & Volume Key Physical Wakeup</h4>
+								<p class="step-copy">Test physical button wakeups (<code>pon_pwrkey</code> and PM6125 GPIO 5 <code>gpio-keys</code>) to verify instant display turn-on from sleep without requiring USB commands.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">cat /sys/kernel/debug/wakeup_sources | grep -E 'pwrkey|rtc|gpio'</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">4</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 4: Enable Display Timeout & Lockscreen in PowerDevil</h4>
+								<p class="step-copy">Once suspend/resume is verified 100% stable, re-enable screen dimming (2 min) and blanking (5 min) in <code>~/.config/powerdevilrc</code> to give the phone all-day battery endurance.</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="card-prompt-bar">
+						<span class="card-prompt-label">Delegate this milestone to an AI coding agent</span>
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-power" data-ripple title="Copy coding agent prompt">
+							<i class="material-icons">content_copy</i>
+						</button>
+					</div>
+				</div>
+			</details>
+
+			<!-- Milestone 3: Sensors & Auto-Rotation -->
+			<details class="md1-expansion-panel" id="m-sensors">
+				<summary class="expansion-header" data-ripple>
+					<div class="panel-title-area">
+						<div class="panel-badge">M3</div>
+						<div class="panel-hero-title">Sensors & Screen Auto-Rotation ("Holding It Naturally")</div>
+					</div>
+					<div class="panel-actions-area">
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-sensors" data-ripple title="Copy coding agent prompt for Milestone 3">
+							<i class="material-icons">content_copy</i>
+						</button>
+						<i class="material-icons expand-icon">expand_more</i>
+					</div>
+				</summary>
+				<div class="panel-body">
+					<div class="plain-callout">
+						<strong>In Plain Words:</strong> When you rotate your phone sideways, it senses gravity using an accelerometer. Currently, the screen is fixed in portrait orientation (1080x2340). Schematics audit has located the exact chips, I2C buses, and interrupt GPIOs. Connecting them to Linux's Industrial I/O (IIO) subsystem gives KDE Plasma smooth automatic screen rotation and ambient light auto-brightness.
+					</div>
+
+					<div class="tech-breakdown">
+						<h4><i class="material-icons" style="font-size: 18px;">screen_rotation</i> Schematic Pinout & Bus Mapping</h4>
+						<ul>
+							<li><strong>Bosch BMI160 6-Axis IMU (U2303):</strong> On QUP1 SE0 (<code>i2c@4c80000</code>) at I2C address <strong><code>0x68</code></strong>. <code>ACCEL_INT</code> on <strong>GPIO 80</strong>, <code>GYRO_INT</code> on <strong>GPIO 81</strong>.</li>
+							<li><strong>Lite-On LTR-559ALS Ambient Light & Proximity (J2301):</strong> On QUP0 SE0 (<code>i2c@4a80000</code>) at I2C address <strong><code>0x23</code></strong>. <code>ALSP_INT_N</code> on <strong>GPIO 91</strong>.</li>
+							<li><strong>Asahi Kasei AK09918C 3-Axis Magnetometer (U2301):</strong> Shared on QUP1 SE0 at I2C address <strong><code>0x0C</code></strong>.</li>
+							<li><strong>Linux Subsystem:</strong> Kernel Industrial I/O (<code>bmi160_i2c.ko</code>, <code>ltr501.ko</code>) paired with userspace <code>iio-sensor-proxy.service</code>.</li>
+						</ul>
+					</div>
+
+					<div class="steps-container">
+						<div class="step-paper">
+							<div class="step-num">1</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 1: Enable QUP0 & QUP1 I2C Buses in Device Tree</h4>
+								<p class="step-copy">Enable <code>qupv3_se0_i2c</code> (GPIO 0/1) and <code>qupv3_se5_i2c</code> (GPIO 22/23) in <code>sm6125-xiaomi-ginkgo.dts</code> with BMI160 and LTR-559 target child nodes.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">i2cdetect -y -r 0   # detects LTR-559 at 0x23
+i2cdetect -y -r 1   # detects BMI160 at 0x68 and AK09918 at 0x0c</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">2</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 2: Build & Stage IIO Kernel Modules</h4>
+								<p class="step-copy">Build <code>bmi160_i2c.ko</code>, <code>ltr501.ko</code>, and <code>ak8975.ko</code> matching kernel <code>#142</code> vermagic and place them in <code>/lib/modules/ginkgo-extra/</code>.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">cat /sys/bus/iio/devices/iio:device*/name
+cat /sys/bus/iio/devices/iio:device0/in_accel_x_raw</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">3</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 3: Connect iio-sensor-proxy to KDE Wayland</h4>
+								<p class="step-copy">Start <code>iio-sensor-proxy.service</code>. It listens to IIO event channels, calculates orientation vectors, and broadcasts <code>net.hadess.SensorProxy</code> D-Bus signals to KWin for automatic Wayland screen rotation.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">systemctl enable --now iio-sensor-proxy.service
+monitor-sensor   # streams real-time orientation (normal, left-up, right-up)</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="card-prompt-bar">
+						<span class="card-prompt-label">Delegate this milestone to an AI coding agent</span>
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-sensors" data-ripple title="Copy coding agent prompt">
+							<i class="material-icons">content_copy</i>
+						</button>
+					</div>
+				</div>
+			</details>
+
+			<!-- Milestone 4: Cellular & 4G Data -->
+			<details class="md1-expansion-panel" id="m-cellular">
+				<summary class="expansion-header" data-ripple>
+					<div class="panel-title-area">
+						<div class="panel-badge">M4</div>
+						<div class="panel-hero-title">Cellular: 4G LTE, Calls & SMS ("Untethering from Wi-Fi")</div>
+					</div>
+					<div class="panel-actions-area">
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-cellular" data-ripple title="Copy coding agent prompt for Milestone 4">
+							<i class="material-icons">content_copy</i>
+						</button>
+						<i class="material-icons expand-icon">expand_more</i>
+					</div>
+				</summary>
+				<div class="panel-body">
+					<div class="plain-callout">
+						<strong>In Plain Words:</strong> The cellular modem is an independent Qualcomm Hexagon coprocessor running inside the Snapdragon 665. We already boot it up (that is how Wi-Fi initializes!), but we haven't linked it to the SIM card yet. Connecting the modem filesystem router (<code>rmtfs</code>) and starting <code>ModemManager</code> allows the phone to read your SIM, connect to cell towers (Airtel, Jio, Vi), send SMS, and route 4G mobile data (<code>wwan0</code>).
+					</div>
+
+					<div class="tech-breakdown">
+						<h4><i class="material-icons" style="font-size: 18px;">cell_tower</i> Qualcomm Baseband & Modem Architecture</h4>
+						<ul>
+							<li><strong>MPSS Remoteproc:</strong> Hexagon modem processor @ <code>0x06080000</code> in 126MB reserved memory (<code>0x4b000000</code>). Firmware: <code>modem.mdt</code>.</li>
+							<li><strong>EFS NVRAM Storage:</strong> eMMC partitions (<code>modemst1</code>, <code>modemst2</code>, <code>fsg</code>, <code>fsc</code>) routed via <code>rmtfs.service</code> using carveout <code>0x89b01000</code>.</li>
+							<li><strong>IPC Router (QRTR):</strong> Qualcomm IPC socket family (<code>AF_QIPC_ROUTER 42</code>) bridging QMI messages over GLINK-SMEM.</li>
+							<li><strong>IP Accelerator (IPAv4.2):</strong> On-SoC hardware DMA engine @ <code>0x05800000</code> (<code>drivers/net/ipa</code>) providing hardware packet routing for <code>wwan0</code>.</li>
+						</ul>
+					</div>
+
+					<div class="steps-container">
+						<div class="step-paper">
+							<div class="step-num">1</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 1: Stabilize rmtfs EFS Bridge & QRTR Discovery</h4>
+								<p class="step-copy">Verify <code>rmtfs.service</code> correctly bridges the modem's non-volatile NVRAM requests to eMMC partitions and confirm QMI service discovery with <code>qrtr-lookup</code>.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">qrtr-lookup   # shows services: 3 (NAS), 11 (UIM/SIM), 14 (WMS/SMS), 15 (WDS/Data)</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">2</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 2: Unmask ModemManager & Probe SIM Card</h4>
+								<p class="step-copy">Unmask <code>ModemManager.service</code> (ordered strictly <code>After=rmtfs.service</code> to avoid Hexagon watchdog crash loops) and interrogate the SIM card over QRTR.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">systemctl unmask ModemManager.service && systemctl start ModemManager.service
+mmcli -L   # lists detected modem: /org/freedesktop/ModemManager1/Modem/0
+mmcli -m 0 --pin=1234   # unlocks SIM PIN</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">3</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 3: Carrier Registration & Signal Verification</h4>
+								<p class="step-copy">Enable the cellular radio transmitter and perform a network scan to register with local 4G LTE/GSM cell towers.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">mmcli -m 0 -e   # enables cellular radio
+mmcli -m 0 --3gpp-scan --timeout=120
+qmicli -p -d qrtr://0 --nas-get-signal-info</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">4</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 4: Mobile Data Packet Connection (wwan0)</h4>
+								<p class="step-copy">Activate the QMI WDS data bearer through NetworkManager to instantiate the <code>wwan0</code> interface and route Internet traffic over 4G LTE.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">mmcli -m 0 --simple-connect="apn=your_carrier_apn"
+ip -br addr show dev wwan0</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="card-prompt-bar">
+						<span class="card-prompt-label">Delegate this milestone to an AI coding agent</span>
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-cellular" data-ripple title="Copy coding agent prompt">
+							<i class="material-icons">content_copy</i>
+						</button>
+					</div>
+				</div>
+			</details>
+
+			<!-- Milestone 5: Standalone UI & Daily Driving -->
+			<details class="md1-expansion-panel" id="m-mobile-ui">
+				<summary class="expansion-header" data-ripple>
+					<div class="panel-title-area">
+						<div class="panel-badge">M5</div>
+						<div class="panel-hero-title">Mobile UI Polish & Touch Ergonomics ("Pocket Linux")</div>
+					</div>
+					<div class="panel-actions-area">
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-mobile-ui" data-ripple title="Copy coding agent prompt for Milestone 5">
+							<i class="material-icons">content_copy</i>
+						</button>
+						<i class="material-icons expand-icon">expand_more</i>
+					</div>
+				</summary>
+				<div class="panel-body">
+					<div class="plain-callout">
+						<strong>In Plain Words:</strong> Standard KDE Plasma Desktop is built for a 24-inch monitor with a mouse. On a 6.3-inch phone screen with 1080x2340 resolution, buttons can feel tiny without fractional display scaling. Setting Wayland scaling to 150% or 175% and adding a dedicated Plasma Mobile session makes the phone feel like an intentional Linux handheld that you can easily operate with one thumb.
+					</div>
+
+					<div class="steps-container">
+						<div class="step-paper">
+							<div class="step-num">1</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 1: Wayland Fractional Display Scaling (150% / 175%)</h4>
+								<p class="step-copy">Configure KScreen and KWin Wayland fractional scaling so desktop icons, window control bars, and touch targets expand to comfortable finger sizes.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">kscreen-doctor output.card0-DSI-1.scale.1.5</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="step-paper">
+							<div class="step-num">2</div>
+							<div class="step-details">
+								<h4 class="step-heading">Step 2: Dual Session Option (Plasma Desktop & Plasma Mobile)</h4>
+								<p class="step-copy">Install <code>plasma-mobile</code> alongside existing <code>plasma-desktop</code>. At the SDDM login screen, you can toggle between a classic PC workstation and a mobile touch interface with an app grid, gestures, and thumb navigation.</p>
+								<div class="md1-terminal-wrap">
+									<button class="terminal-copy-btn" data-ripple title="Copy Command"><i class="material-icons" style="font-size: 16px;">content_copy</i></button>
+									<div class="md1-terminal">sudo apt-get install --no-install-recommends plasma-mobile</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="card-prompt-bar">
+						<span class="card-prompt-label">Delegate this milestone to an AI coding agent</span>
+						<button type="button" class="circle-copy-btn" data-prompt-id="prompt-mobile-ui" data-ripple title="Copy coding agent prompt">
+							<i class="material-icons">content_copy</i>
+						</button>
+					</div>
+				</div>
+			</details>
+
+		</div>
+
+		<!-- STRATEGIC COMPARISON MATRIX TABLE -->
+		<div class="section-head-row" style="margin-top: 40px; border-bottom: none; padding-bottom: 0;">
+			<div>
+				<h2 class="section-head-title">
+					<i class="material-icons" style="color: var(--primary);">table_chart</i>
+					Strategic Roadmap Comparison Matrix
+				</h2>
+			</div>
+		</div>
+
+		<div class="table-card">
+			<table class="md1-data-table">
+				<thead>
+					<tr>
+						<th>Milestone</th>
+						<th>Target Capability</th>
+						<th>Complexity</th>
+						<th>Primary Value</th>
+						<th>Recommended Focus</th>
+						<th>Immediate Next Action</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td><strong>M1: Audio</strong></td>
+						<td>Speakers, 3.5mm Jack, BT Headset</td>
+						<td>Moderate</td>
+						<td>YouTube, media playback, sound</td>
+						<td><span style="color: var(--accent-green); font-weight: 500;">Recommended Next</span></td>
+						<td>Pair BT A2DP earbuds via PipeWire</td>
+					</tr>
+					<tr>
+						<td><strong>M2: Sleep & Power</strong></td>
+						<td>Suspend to RAM, all-day battery</td>
+						<td>Low-Med</td>
+						<td>Untethered battery longevity</td>
+						<td><span style="color: var(--primary); font-weight: 500;">High Priority</span></td>
+						<td>Run <code>rtcwake -m freeze -s 10</code> test</td>
+					</tr>
+					<tr>
+						<td><strong>M3: Sensors</strong></td>
+						<td>Auto-rotate, auto-brightness</td>
+						<td>Moderate</td>
+						<td>Landscape video & typing</td>
+						<td><span style="color: var(--accent-purple); font-weight: 500;">Quality of Life</span></td>
+						<td>Enable QUP0/QUP1 I2C in DTS</td>
+					</tr>
+					<tr>
+						<td><strong>M4: Cellular / LTE</strong></td>
+						<td>SIM card, 4G mobile data, SMS</td>
+						<td>Complex</td>
+						<td>Full phone functionality anywhere</td>
+						<td><span style="color: var(--accent-amber); font-weight: 500;">Later Stage</span></td>
+						<td>Start <code>rmtfs</code> & test <code>qrtr-lookup</code></td>
+					</tr>
+					<tr>
+						<td><strong>M5: Mobile UI</strong></td>
+						<td>Plasma Mobile session, 150% scale</td>
+						<td>Low</td>
+						<td>Touch ergonomics & usability</td>
+						<td><span style="color: var(--primary); font-weight: 500;">Quick Win</span></td>
+						<td>Set Wayland scale to 1.5 in KScreen</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<!-- DIRECTIVES & TIPS CARD -->
+		<div class="directives-card">
+			<i class="material-icons directives-icon">lightbulb</i>
+			<div class="directives-body">
+				<h3>Non-Negotiable Project Directives for Agents & Developers</h3>
+				<p>
+					1. <strong>Keep <code>mitigations=off</code>:</strong> Spectre/Meltdown hardware mitigations are deliberately disabled in the kernel cmdline to maximize instruction retirement rate on Kryo 260 cores. Never re-enable them.
+					<br>
+					2. <strong>Out-of-Tree <code>.ko</code> Modules Only:</strong> Never flash a raw vanilla upstream v7.0 kernel over <code>out/deployed-unpack/kernel</code> (it lacks downstream DPU video pixel clock calibration and causes blank screens). Build extra drivers (e.g., <code>bmi160_i2c.ko</code>, <code>wcd937x.ko</code>, <code>rtc-pm8xxx.ko</code>) as out-of-tree modules matching <code>#142</code> vermagic.
+				</p>
+			</div>
+		</div>
+
+		<footer>
+			Redmi Note 8 (SM6125 / ginkgo) · Mainline Linux 7.0 · Ubuntu 26.04 LTS · Designed with Strict Material Design 1 (2014)
+		</footer>
+
+	</main>
+
+	<!-- Material 1 Floating Action Button (FAB, 56px Circle, Pink A200, Exact Pixel Centering) -->
+	<button class="md1-fab" id="fab-action" data-ripple aria-label="Toggle All Milestones" title="Expand / Collapse Milestones">
+		<i class="material-icons" id="fab-icon">unfold_more</i>
+	</button>
+
+	<!-- Material Design 1 Dialog (Modal for Enlarged Architecture Tree) -->
+	<dialog class="md1-dialog" id="enlarge-dialog">
+		<div class="dialog-header">
+			<div class="dialog-title" style="display: flex; align-items: center; gap: 10px;">
+				<i class="material-icons" style="color: var(--primary);">account_tree</i>
+				<span>Master Hardware Architecture Tree (Interactive)</span>
+			</div>
+			<div class="dialog-tools">
+				<span class="pan-hint" style="font-size: 13px; color: var(--text-medium); margin-right: 12px; display: inline-flex; align-items: center; gap: 5px; user-select: none;"><i class="material-icons" style="font-size: 16px; color: var(--primary);">pan_tool</i> Drag to pan · Scroll to zoom</span>
+				<button class="icon-btn" id="zoom-out-btn" title="Zoom Out (Scroll Down)"><i class="material-icons">zoom_out</i></button>
+				<span id="zoom-level-text" style="font-size: 13px; font-weight: 500; min-width: 44px; text-align: center; color: var(--text-high); user-select: none;">100%</span>
+				<button class="icon-btn" id="zoom-in-btn" title="Zoom In (Scroll Up)"><i class="material-icons">zoom_in</i></button>
+				<button class="icon-btn" id="zoom-reset-btn" title="Reset Zoom & Pan (100%)"><i class="material-icons">restart_alt</i></button>
+				<button class="icon-btn" id="dialog-close-btn" title="Close Dialog (Esc)" aria-label="Close dialog"><i class="material-icons">close</i></button>
+				<button class="md1-btn md1-btn-raised" id="dialog-close-action-btn" style="height: 34px; min-width: 72px; font-size: 13px; padding: 0 14px; margin-left: 6px;">Close</button>
+			</div>
+		</div>
+		<div class="dialog-canvas" id="dialog-canvas" title="Click and drag to pan, scroll wheel to zoom">
+			<div class="dialog-canvas-inner" id="dialog-canvas-inner">
+				<!-- SVG clone will be injected here -->
+			</div>
+		</div>
+	</dialog>
+
+	<!-- Toast Notification (Snackbar) -->
+	<div class="md1-snackbar" id="md1-snackbar">
+		<i class="material-icons" style="color: var(--accent-green); font-size: 20px;">check_circle</i>
+		<span id="snackbar-text">Agent prompt copied to clipboard!</span>
+	</div>
+
+	<!-- Hidden Agent Prompts for Clipboard Copy -->
+	<div id="prompts-store" style="display: none;">
+		<div id="prompt-audio">You are tasked with bringing up the Audio Subsystem on Xiaomi Redmi Note 8 (ginkgo / Qualcomm SM6125) running mainline Linux 7.0 (#142 SMP PREEMPT) and Ubuntu 26.04 LTS.
+
+TARGET HARDWARE TOPOLOGY:
+- Digital Codec: Qualcomm Bolero macro block. rx_macro (SoundWire Master 1 @ 0x0a450000) drives headphones/line-out; tx_macro (SoundWire Master 2 @ 0x0a470000) captures mics. NOTE: wsa_macro is disabled on Ginkgo (does not use WSA881x).
+- Analog Codec: Qualcomm WCD9370/WCD9375 Aqstic attached to Bolero SoundWire slaves for 3.5mm jack.
+- Speaker Amplifier: Maxim MAX98927 Class-D smart amp on I2C-0 at 7-bit address 0x3a (reset pin TLMM GPIO 27). Fed via Qualcomm Primary MI2S (pri_mi2s / dai_mi2s0).
+- Audio DSP: Hexagon QDSP6 v66 @ 0xab00000 in 34MB reserved RAM (0x55300000). Communicates via APR v2 message bus (apr_audio_svc).
+- Bluetooth Audio: WCN3990 Bluetooth 5.0 UART (/dev/ttyMSM1). PipeWire A2DP software encoding works immediately without Hexagon ADSP.
+
+TASKS TO EXECUTE:
+1. Extract adsp.mdt and adsp.b00-bXX from vendor eMMC partition mmcblk0p28 to /lib/firmware/qcom/sm6125/xiaomi/ginkgo/.
+2. Add qcom,sm6115-adsp-pas node in Device Tree at 0xab00000.
+3. Build out-of-tree kernel modules for CONFIG_SND_SOC_QCOM, CONFIG_SND_SOC_WCD937X, CONFIG_SND_SOC_MAX98927 matching vermagic 7.0.0-00001-g62f9dac57de4-dirty #142 SMP PREEMPT. Stage into /lib/modules/ginkgo-extra/.
+4. Bind max98927@3a on &qupv3_se1_i2c with reset-gpios = <&tlmm 27 0>.
+5. Deploy ALSA UCM2 profiles into /usr/share/alsa/ucm2/Qualcomm/sm6125/ (sm6125.conf and HiFi.conf) routing Speaker to hw:0,0 and Headphones to hw:0,1.
+6. Verify via:
+   - cat /proc/asound/cards
+   - wpctl status
+   - pw-play /usr/share/sounds/alsa/Front_Center.wav</div>
+
+		<div id="prompt-power">You are tasked with validating and solidifying Suspend/Resume (Sleep & Battery Management) on Xiaomi Redmi Note 8 (ginkgo / Qualcomm SM6125) running mainline Linux 7.0 (#142 SMP PREEMPT).
+
+TARGET HARDWARE TOPOLOGY:
+- Primary PMIC PM6125: Controls system LDOs, hardware RTC (rtc@6000 driven by rtc-pm8xxx.ko at /dev/rtc0), and power-on logic (pon_pwrkey).
+- Secondary PMIC PMI632: Controls battery fuel gauge (qgauge@4800 at /sys/class/power_supply/qcom-battery), LCDB display bias (±5.4V), and USB VBUS boost.
+- Touch Controller: Novatek NT36672A on SPI2 (8.0 MHz). Uses volatile SRAM with NO flash. Drops firmware on power down.
+- Firmware Sync: Out-of-tree module ginkgo_touch_sync.ko reloads novatek_ts_tianma_fw.bin over SPI in <300ms via /sys/kernel/ginkgo_touch/resume.
+
+TASKS TO EXECUTE:
+1. Verify supported suspend states: cat /sys/power/state (freeze, mem).
+2. Test RTC-timed freeze suspend: rtcwake -m freeze -s 10.
+3. Validate that /lib/systemd/system-sleep/touch-wake.sh reloads touch firmware on wakeup.
+4. Verify physical button wakeup sources:
+   - Press physical Power button (pon_pwrkey) while suspended.
+   - Press Volume Up (pm6125_gpio5).
+5. Verify DSI display unblanks without FIFO overflow (0xcccc) or DPU clamp hang.
+6. Once stable, re-enable screen dimming (2 min) and blanking (5 min) in ~/.config/powerdevilrc.</div>
+
+		<div id="prompt-sensors">You are tasked with bringing up Sensors and Auto-Rotation on Xiaomi Redmi Note 8 (ginkgo / Qualcomm SM6125) running mainline Linux 7.0 (#142 SMP PREEMPT) and KDE Plasma Wayland.
+
+TARGET HARDWARE TOPOLOGY (VERIFIED FROM SCHEMATICS):
+- 6-Axis IMU (Accel + Gyro): Bosch Sensortec BMI160 (U2303) on QUP1 SE0 (i2c@4c80000, SDA GPIO 22, SCL GPIO 23) at I2C address 0x68. INT1 on GPIO 80, INT2 on GPIO 81.
+- Ambient Light & Proximity: Lite-On LTR-559ALS (J2301) on QUP0 SE0 (i2c@4a80000, SDA GPIO 0, SCL GPIO 1) at I2C address 0x23. Interrupt on GPIO 91.
+- 3-Axis Magnetometer (Compass): Asahi Kasei AK09918C (U2301) shared on QUP1 SE0 at I2C address 0x0C.
+
+TASKS TO EXECUTE:
+1. In arch/arm64/boot/dts/qcom/sm6125-xiaomi-ginkgo.dts, enable qupv3_se0_i2c (GPIO 0/1) with ltr559@23 node, and qupv3_se5_i2c (GPIO 22/23) with bmi160@68 and ak09918@0c nodes.
+2. Build out-of-tree kernel modules for CONFIG_BMI160_I2C, CONFIG_LTR501, and CONFIG_AK8975 matching vermagic 7.0.0-00001-g62f9dac57de4-dirty #142 SMP PREEMPT. Stage into /lib/modules/ginkgo-extra/.
+3. Verify I2C detection: i2cdetect -y -r 0 (0x23) and i2cdetect -y -r 1 (0x68, 0x0c).
+4. Verify IIO devices: cat /sys/bus/iio/devices/iio:device*/name.
+5. Enable and start iio-sensor-proxy.service.
+6. Verify orientation streaming: monitor-sensor.
+7. Confirm KDE Plasma Wayland screen auto-rotates by 90/180/270 degrees when the phone is tilted.</div>
+
+		<div id="prompt-cellular">You are tasked with bringing up the Cellular 4G LTE Modem on Xiaomi Redmi Note 8 (ginkgo / Qualcomm SM6125) running mainline Linux 7.0 (#142 SMP PREEMPT).
+
+TARGET HARDWARE TOPOLOGY:
+- MPSS Remoteproc: Hexagon modem processor @ 0x06080000 in 126MB reserved RAM (0x4b000000). Firmware: modem.mdt (Baseband MPSS.AT.4.3.1).
+- Non-Volatile Storage (EFS): eMMC raw partitions modemst1, modemst2, fsg, fsc. Bridged by rmtfs.service using shared memory carveout 0x89b01000 (/dev/qcom_rmtfs_mem1).
+- IPC Protocol: QRTR (AF_QIPC_ROUTER 42) bridging QMI messages over GLINK-SMEM.
+- Data Accelerator: Qualcomm IPA v4.2 @ 0x05800000 (drivers/net/ipa) for wwan0 mobile broadband.
+
+TASKS TO EXECUTE:
+1. Verify rmtfs.service correctly maps /dev/qcom_rmtfs_mem1 to EFS eMMC partitions.
+2. Verify QRTR services via qrtr-lookup: Service 3 (NAS), 11 (UIM/SIM), 14 (WMS/SMS), 15 (WDS/Data).
+3. Unmask and start ModemManager (must be ordered strictly After=rmtfs.service):
+   - systemctl unmask ModemManager.service && systemctl start ModemManager.service
+4. Interrogate SIM card: mmcli -L and mmcli -m 0. Unlock PIN if required.
+5. Enable cellular radio transmitter: mmcli -m 0 -e.
+6. Perform 3GPP cellular scan: mmcli -m 0 --3gpp-scan --timeout=120.
+7. Activate data call via NetworkManager: mmcli -m 0 --simple-connect="apn=your_carrier_apn".
+8. Verify wwan0 interface receives an IP address and can route Internet traffic without USB cable.</div>
+
+		<div id="prompt-mobile-ui">You are tasked with optimizing the Mobile UI and Touch Ergonomics on Xiaomi Redmi Note 8 (ginkgo / Qualcomm SM6125) running mainline Linux 7.0 (#142 SMP PREEMPT) under KDE Plasma Wayland.
+
+TARGET HARDWARE TOPOLOGY:
+- Display: Tianma NT36672A video-mode DSI, 1080x2340 resolution @ 60Hz.
+- Touchscreen: Novatek NT36672A over SPI2, multi-touch capacitive.
+- Compositor: KWin Wayland with SDDM autologin user ginkgo.
+
+TASKS TO EXECUTE:
+1. Configure Wayland fractional scaling to 150% (or 175%) via kscreen-doctor:
+   kscreen-doctor output.card0-DSI-1.scale.1.5
+2. Optimize KWin touch gesture navigation (swipe from bottom for task overview, swipe from top for quick settings).
+3. Configure Maliit on-screen keyboard auto-show when focusing text inputs in Wayland apps.
+4. Install and configure plasma-mobile session alongside plasma-desktop:
+   sudo apt-get install --no-install-recommends plasma-mobile
+5. Configure SDDM to allow user to select between Plasma Desktop (PC mode) and Plasma Mobile (Handheld mode).</div>
+	</div>
+
+	<!-- Interactive Logic: Dialog Zoom/Pan, Circular Copy Buttons, Snackbar, Theme -->
+	<script>
+		// Initialize Mermaid with readable 16px font
+		mermaid.initialize({
+			startOnLoad: true,
+			theme: 'neutral',
+			fontFamily: 'Roboto, sans-serif',
+			fontSize: 16,
+			flowchart: {
+				useMaxWidth: false,
+				htmlLabels: true
+			}
+		});
+
+		// 1. Authentic 2014 Radial Touch Ripple Implementation
+		document.addEventListener('pointerdown', (e) => {
+			const target = e.target.closest('[data-ripple]');
+			if (!target || target.disabled) return;
+
+			const rect = target.getBoundingClientRect();
+			const x = e.clientX - rect.left;
+			const y = e.clientY - rect.top;
+
+			const maxDistX = Math.max(x, rect.width - x);
+			const maxDistY = Math.max(y, rect.height - y);
+			const radius = Math.hypot(maxDistX, maxDistY);
+
+			const ripple = document.createElement('span');
+			ripple.className = 'md1-ripple';
+			Object.assign(ripple.style, {
+				width: `${radius * 2}px`,
+				height: `${radius * 2}px`,
+				left: `${x - radius}px`,
+				top: `${y - radius}px`
+			});
+
+			target.appendChild(ripple);
+
+			const cleanUp = () => {
+				ripple.classList.add('fade-out');
+				ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+			};
+
+			target.addEventListener('pointerup', cleanUp, { once: true });
+			target.addEventListener('pointerleave', cleanUp, { once: true });
+			target.addEventListener('pointercancel', cleanUp, { once: true });
+		});
+
+		// 2. Dynamic Scroll-Elevation for Top App Bar (0dp -> 4dp)
+		const appBar = document.getElementById('app-bar');
+		window.addEventListener('scroll', () => {
+			if (window.scrollY > 4) {
+				appBar.classList.add('is-scrolled');
+			} else {
+				appBar.classList.remove('is-scrolled');
+			}
+		}, { passive: true });
+
+		// 3. Scroll to Top
+		document.getElementById('scroll-top-btn').addEventListener('click', () => {
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		});
+
+		// 4. Accordion Toggle Logic
+		const toggleBtn = document.getElementById('btn-toggle-accordions');
+		const fabAction = document.getElementById('fab-action');
+		const fabIcon = document.getElementById('fab-icon');
+		const allPanels = document.querySelectorAll('.expansion-panels-stack details');
+
+		function toggleAllMilestones() {
+			const areAllOpen = Array.from(allPanels).every(d => d.open);
+			allPanels.forEach(d => d.open = !areAllOpen);
+			updateToggleUI(!areAllOpen);
+		}
+
+		function updateToggleUI(allOpen) {
+			toggleBtn.querySelector('span').textContent = allOpen ? 'Collapse All' : 'Expand All';
+			toggleBtn.querySelector('i').textContent = allOpen ? 'unfold_less' : 'unfold_more';
+			fabIcon.textContent = allOpen ? 'unfold_less' : 'unfold_more';
+		}
+
+		toggleBtn.addEventListener('click', toggleAllMilestones);
+		fabAction.addEventListener('click', toggleAllMilestones);
+
+		allPanels.forEach(d => {
+			d.addEventListener('toggle', () => {
+				const areAllOpen = Array.from(allPanels).every(item => item.open);
+				updateToggleUI(areAllOpen);
+			});
+		});
+
+		// 5. Material 1 Theme Toggle (Light / Dark)
+		const themeToggle = document.getElementById('theme-toggle');
+		const themeIcon = document.getElementById('theme-icon');
+		const htmlEl = document.documentElement;
+
+		const savedTheme = localStorage.getItem('ginkgo-theme') || 'light';
+		htmlEl.setAttribute('data-theme', savedTheme);
+		themeIcon.textContent = savedTheme === 'dark' ? 'brightness_7' : 'brightness_4';
+
+		themeToggle.addEventListener('click', () => {
+			const currentTheme = htmlEl.getAttribute('data-theme');
+			const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+			htmlEl.setAttribute('data-theme', newTheme);
+			localStorage.setItem('ginkgo-theme', newTheme);
+			themeIcon.textContent = newTheme === 'dark' ? 'brightness_7' : 'brightness_4';
+		});
+
+		// 6. Snackbar Notification Helper
+		const snackbar = document.getElementById('md1-snackbar');
+		const snackbarText = document.getElementById('snackbar-text');
+		let snackbarTimeout = null;
+
+		function showSnackbar(msg) {
+			snackbarText.textContent = msg;
+			snackbar.classList.add('show');
+			clearTimeout(snackbarTimeout);
+			snackbarTimeout = setTimeout(() => {
+				snackbar.classList.remove('show');
+			}, 3000);
+		}
+
+		// 7. Clipboard Helper with Fallback
+		function copyTextToClipboard(text, onSuccess) {
+			if (navigator.clipboard && window.isSecureContext) {
+				navigator.clipboard.writeText(text).then(onSuccess).catch(() => {
+					fallbackCopy(text, onSuccess);
+				});
+			} else {
+				fallbackCopy(text, onSuccess);
+			}
+		}
+
+		function fallbackCopy(text, onSuccess) {
+			const ta = document.createElement('textarea');
+			ta.value = text;
+			ta.style.position = 'fixed';
+			ta.style.left = '-9999px';
+			document.body.appendChild(ta);
+			ta.focus();
+			ta.select();
+			try {
+				document.execCommand('copy');
+				if (onSuccess) onSuccess();
+			} catch (e) {}
+			document.body.removeChild(ta);
+		}
+
+		// 8. Circular Copy Buttons (No Background) for Agent Prompts
+		document.querySelectorAll('.circle-copy-btn').forEach(btn => {
+			btn.addEventListener('click', (e) => {
+				e.stopPropagation(); // prevent accordion expansion
+				const promptId = btn.getAttribute('data-prompt-id');
+				const promptEl = document.getElementById(promptId);
+				if (!promptEl) return;
+
+				const text = promptEl.textContent.trim();
+				copyTextToClipboard(text, () => {
+					btn.classList.add('copied');
+					const icon = btn.querySelector('i');
+					icon.textContent = 'check';
+
+					showSnackbar('Agent prompt copied to clipboard!');
+
+					setTimeout(() => {
+						btn.classList.remove('copied');
+						icon.textContent = 'content_copy';
+					}, 2000);
+				});
+			});
+		});
+
+		// 9. Copy Terminal Snippets
+		document.querySelectorAll('.terminal-copy-btn').forEach(btn => {
+			btn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				const codeBlock = btn.nextElementSibling;
+				if (!codeBlock) return;
+				const text = codeBlock.textContent.trim();
+				copyTextToClipboard(text, () => {
+					const icon = btn.querySelector('i');
+					icon.textContent = 'check';
+					btn.style.color = 'var(--accent-green)';
+					showSnackbar('Terminal command copied!');
+					setTimeout(() => {
+						icon.textContent = 'content_copy';
+						btn.style.color = '';
+					}, 2000);
+				});
+			});
+		});
+
+		// 9. Architecture Tree Modal Dialog with Smooth Pan & Mouse Wheel Zoom
+		const dialog = document.getElementById('enlarge-dialog');
+		const dialogCanvas = document.getElementById('dialog-canvas');
+		const dialogCanvasInner = document.getElementById('dialog-canvas-inner');
+		const openDialogBtn = document.getElementById('open-tree-dialog-btn');
+		const treeCardTrigger = document.getElementById('tree-card-trigger');
+		const closeDialogBtn = document.getElementById('dialog-close-btn');
+		const closeActionBtn = document.getElementById('dialog-close-action-btn');
+		const zoomInBtn = document.getElementById('zoom-in-btn');
+		const zoomOutBtn = document.getElementById('zoom-out-btn');
+		const zoomResetBtn = document.getElementById('zoom-reset-btn');
+		const zoomLevelText = document.getElementById('zoom-level-text');
+
+		let currentZoom = 1.0;
+		let panX = 0;
+		let panY = 0;
+		let isPanning = false;
+		let startX = 0;
+		let startY = 0;
+
+		function applyTransform() {
+			dialogCanvasInner.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+			if (zoomLevelText) {
+				zoomLevelText.textContent = `${Math.round(currentZoom * 100)}%`;
+			}
+		}
+
+		function centerDiagram() {
+			currentZoom = 1.0;
+			panX = 0;
+			panY = 0;
+			applyTransform();
+		}
+
+		function closeTreeDialog() {
+			try {
+				if (dialog.open) {
+					dialog.close();
+				}
+			} catch (err) {
+				// ignore if already closed
+			}
+			dialog.removeAttribute('open');
+			dialog.style.display = 'none';
+			isPanning = false;
+			if (dialogCanvas) dialogCanvas.classList.remove('is-dragging');
+			if (dialogCanvasInner) dialogCanvasInner.classList.remove('dragging');
+		}
+
+		function openTreeDialog() {
+			// Clone the rendered SVG from the page
+			const svgSource = document.querySelector('#main-mermaid-diagram svg');
+			if (svgSource) {
+				dialogCanvasInner.innerHTML = svgSource.outerHTML;
+			}
+			centerDiagram();
+			dialog.style.display = 'flex';
+			if (!dialog.open) {
+				dialog.showModal();
+			}
+		}
+
+		// Ensure dialog is closed by default upon script initialization
+		closeTreeDialog();
+
+		openDialogBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			openTreeDialog();
+		});
+
+		treeCardTrigger.addEventListener('click', openTreeDialog);
+
+		closeDialogBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			closeTreeDialog();
+		});
+
+		if (closeActionBtn) {
+			closeActionBtn.addEventListener('click', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				closeTreeDialog();
+			});
+		}
+
+		// Close dialog on native cancel (Esc key pressed)
+		dialog.addEventListener('cancel', (e) => {
+			e.preventDefault();
+			closeTreeDialog();
+		});
+
+		// Global Esc key failsafe
+		window.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && (dialog.open || dialog.style.display === 'flex')) {
+				closeTreeDialog();
+			}
+		});
+
+		// Close dialog when clicking on backdrop scrim (outside the dialog rectangle)
+		dialog.addEventListener('click', (e) => {
+			if (e.target === dialog) {
+				const rect = dialog.getBoundingClientRect();
+				const isOutside = (
+					e.clientX < rect.left ||
+					e.clientX > rect.right ||
+					e.clientY < rect.top ||
+					e.clientY > rect.bottom
+				);
+				if (isOutside) {
+					closeTreeDialog();
+				}
+			}
+		});
+
+		// --- MOUSE WHEEL ZOOM & PAN LOGIC ---
+		dialogCanvas.addEventListener('wheel', (e) => {
+			e.preventDefault();
+			// If holding shift, pan horizontally
+			if (e.shiftKey) {
+				panX -= e.deltaY;
+				applyTransform();
+				return;
+			}
+
+			// Smooth zoom towards mouse cursor position
+			const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+			const newZoom = Math.max(0.3, Math.min(4.5, currentZoom * zoomFactor));
+
+			const rect = dialogCanvas.getBoundingClientRect();
+			const mouseX = e.clientX - (rect.left + rect.width / 2);
+			const mouseY = e.clientY - (rect.top + rect.height / 2);
+
+			panX = mouseX - (mouseX - panX) * (newZoom / currentZoom);
+			panY = mouseY - (mouseY - panY) * (newZoom / currentZoom);
+			currentZoom = newZoom;
+			applyTransform();
+		}, { passive: false });
+
+		// --- MOUSE DRAG TO PAN LOGIC ---
+		dialogCanvas.addEventListener('mousedown', (e) => {
+			if (e.button !== 0) return; // only left click
+			isPanning = true;
+			startX = e.clientX - panX;
+			startY = e.clientY - panY;
+			dialogCanvas.classList.add('is-dragging');
+			dialogCanvasInner.classList.add('dragging');
+		});
+
+		window.addEventListener('mousemove', (e) => {
+			if (!isPanning) return;
+			panX = e.clientX - startX;
+			panY = e.clientY - startY;
+			applyTransform();
+		});
+
+		window.addEventListener('mouseup', () => {
+			if (isPanning) {
+				isPanning = false;
+				dialogCanvas.classList.remove('is-dragging');
+				dialogCanvasInner.classList.remove('dragging');
+			}
+		});
+
+		// --- TOUCH PAN & PINCH ZOOM LOGIC ---
+		let touchStartDist = 0;
+		dialogCanvas.addEventListener('touchstart', (e) => {
+			if (e.touches.length === 1) {
+				isPanning = true;
+				startX = e.touches[0].clientX - panX;
+				startY = e.touches[0].clientY - panY;
+				dialogCanvasInner.classList.add('dragging');
+			} else if (e.touches.length === 2) {
+				touchStartDist = Math.hypot(
+					e.touches[0].clientX - e.touches[1].clientX,
+					e.touches[0].clientY - e.touches[1].clientY
+				);
+			}
+		}, { passive: true });
+
+		window.addEventListener('touchmove', (e) => {
+			if (isPanning && e.touches.length === 1) {
+				panX = e.touches[0].clientX - startX;
+				panY = e.touches[0].clientY - startY;
+				applyTransform();
+			} else if (e.touches.length === 2) {
+				const dist = Math.hypot(
+					e.touches[0].clientX - e.touches[1].clientX,
+					e.touches[0].clientY - e.touches[1].clientY
+				);
+				if (touchStartDist > 0) {
+					const factor = dist / touchStartDist;
+					currentZoom = Math.max(0.3, Math.min(4.5, currentZoom * factor));
+					touchStartDist = dist;
+					applyTransform();
+				}
+			}
+		}, { passive: true });
+
+		window.addEventListener('touchend', () => {
+			isPanning = false;
+			touchStartDist = 0;
+			dialogCanvasInner.classList.remove('dragging');
+		});
+
+		// Toolbar Controls
+		zoomInBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			currentZoom = Math.min(currentZoom * 1.25, 4.5);
+			applyTransform();
+		});
+
+		zoomOutBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			currentZoom = Math.max(currentZoom * 0.8, 0.3);
+			applyTransform();
+		});
+
+		zoomResetBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			centerDiagram();
+		});
+	</script>
+
+</body>
+</html>

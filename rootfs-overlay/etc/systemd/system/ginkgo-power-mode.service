@@ -1,0 +1,13 @@
+[Unit]
+Description=Ginkgo CPU/GPU power profile (see /usr/local/sbin/ginkgo-power-mode.sh)
+DefaultDependencies=no
+After=sysinit.target
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ginkgo-power-mode.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=basic.target

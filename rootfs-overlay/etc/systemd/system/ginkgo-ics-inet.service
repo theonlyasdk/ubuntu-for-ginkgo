@@ -1,0 +1,12 @@
+[Unit]
+Description=Ginkgo ICS internet (secondary IP + route + DNS)
+After=usb-gadget-rndis.service network.target
+Wants=usb-gadget-rndis.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ginkgo-ics-inet.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

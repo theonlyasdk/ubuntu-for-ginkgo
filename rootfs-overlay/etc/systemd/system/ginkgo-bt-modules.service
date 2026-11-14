@@ -1,0 +1,12 @@
+[Unit]
+Description=Load Bluetooth crypto and profile modules
+Before=bluetooth.service
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'grep -qw ecc /proc/modules 2>/dev/null || modprobe ecc 2>/dev/null || insmod /lib/modules/ginkgo-extra/ecc.ko 2>/dev/null || true; grep -qw ecdh_generic /proc/modules 2>/dev/null || modprobe ecdh_generic 2>/dev/null || insmod /lib/modules/ginkgo-extra/ecdh_generic.ko 2>/dev/null || true; grep -qw rfcomm /proc/modules 2>/dev/null || modprobe rfcomm 2>/dev/null || insmod /lib/modules/ginkgo-extra/rfcomm.ko 2>/dev/null || true; grep -qw bnep /proc/modules 2>/dev/null || modprobe bnep 2>/dev/null || insmod /lib/modules/ginkgo-extra/bnep.ko 2>/dev/null || true; grep -qw hidp /proc/modules 2>/dev/null || modprobe hidp 2>/dev/null || insmod /lib/modules/ginkgo-extra/hidp.ko 2>/dev/null || true'
+
+[Install]
+WantedBy=multi-user.target

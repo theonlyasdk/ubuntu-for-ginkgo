@@ -1,0 +1,8 @@
+#!/bin/sh
+# Synchronize RTC offset whenever a network interface connects
+IFACE="$1"
+ACTION="$2"
+
+if [ "$ACTION" = "up" ]; then
+    /usr/local/sbin/ginkgo-rtc-sync.sh sync 2>/dev/null || true
+fi

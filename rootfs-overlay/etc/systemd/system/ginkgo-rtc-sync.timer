@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically commit RTC offset to disk
+After=ginkgo-rtc.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

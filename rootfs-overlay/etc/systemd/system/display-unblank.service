@@ -1,0 +1,17 @@
+[Unit]
+Description=Ginkgo status HUD and Volume-Up reboot-fastboot (console/standalone fallback)
+After=local-fs.target systemd-udev-settle.service NetworkManager.service
+Wants=NetworkManager.service
+Conflicts=sddm.service gdm.service gdm3.service display-manager.service
+ConditionPathExists=!/etc/sddm.conf.d/10-ginkgo.conf
+ConditionPathExists=!/etc/systemd/system/display-manager.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/display-unblank.sh
+Restart=no
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

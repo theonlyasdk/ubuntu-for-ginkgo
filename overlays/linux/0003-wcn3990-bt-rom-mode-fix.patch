@@ -1,0 +1,160 @@
+diff --git a/drivers/bluetooth/btqca.c b/drivers/bluetooth/btqca.c
+index 3b0626920..a6e8ce872 100644
+--- a/drivers/bluetooth/btqca.c
++++ b/drivers/bluetooth/btqca.c
+@@ -13,6 +13,16 @@
+ 
+ #include "btqca.h"
+ 
++/*
++ * ginkgo: the WCN3990 in this phone (Product ID 0x0f, ROM 0x102) needs
++ * qca/crbtfw12.tlv + qca/crnv12.bin, which were never published. Skip the
++ * rampatch/NVM download and let the controller run its built-in ROM firmware.
++ */
++static bool qca_skip_fw = true;
++module_param(qca_skip_fw, bool, 0644);
++MODULE_PARM_DESC(qca_skip_fw,
++		 "Skip the BT rampatch/NVM firmware download and use the controller's built-in ROM firmware");
++
+ int qca_read_soc_version(struct hci_dev *hdev, struct qca_btsoc_version *ver,
+ 			 enum qca_btsoc_type soc_type)
+ {
+@@ -577,6 +587,12 @@ static int qca_download_firmware(struct hci_dev *hdev,
+ 	const u8 *segment;
+ 	int ret, size, remain, i = 0;
+ 
++	if (qca_skip_fw) {
++		bt_dev_info(hdev, "QCA skipping %s download, using ROM firmware",
++			    config->type == TLV_TYPE_PATCH ? "rampatch" : "NVM");
++		return 0;
++	}
++
+ 	bt_dev_info(hdev, "QCA Downloading %s", config->fwname);
+ 
+ 	ret = request_firmware(&fw, config->fwname, &hdev->dev);
+@@ -1020,23 +1036,17 @@ EXPORT_SYMBOL_GPL(qca_uart_setup);
+ int qca_set_bdaddr(struct hci_dev *hdev, const bdaddr_t *bdaddr)
+ {
+ 	bdaddr_t bdaddr_swapped;
+-	struct sk_buff *skb;
+ 	int err;
+ 
+ 	baswap(&bdaddr_swapped, bdaddr);
+ 
+-	skb = __hci_cmd_sync_ev(hdev, EDL_WRITE_BD_ADDR_OPCODE, 6,
+-				&bdaddr_swapped, HCI_EV_VENDOR,
+-				HCI_INIT_TIMEOUT);
+-	if (IS_ERR(skb)) {
+-		err = PTR_ERR(skb);
++	/* WCN3990 ROM answers with Command Complete, not a vendor event */
++	err = __hci_cmd_sync_status(hdev, EDL_WRITE_BD_ADDR_OPCODE, 6,
++				    &bdaddr_swapped, HCI_INIT_TIMEOUT);
++	if (err)
+ 		bt_dev_err(hdev, "QCA Change address cmd failed (%d)", err);
+-		return err;
+-	}
+ 
+-	kfree_skb(skb);
+-
+-	return 0;
++	return err;
+ }
+ EXPORT_SYMBOL_GPL(qca_set_bdaddr);
+ 
+diff --git a/drivers/bluetooth/hci_qca.c b/drivers/bluetooth/hci_qca.c
+index bb9f002aa..0b41ca454 100644
+--- a/drivers/bluetooth/hci_qca.c
++++ b/drivers/bluetooth/hci_qca.c
+@@ -41,6 +41,16 @@
+ #include "hci_uart.h"
+ #include "btqca.h"
+ 
++/*
++ * ginkgo: when no firmware is downloaded (btqca qca_skip_fw=1), the chip
++ * never switches its baud. Skip the switch to oper speed so HCI traffic
++ * stays at the init speed.
++ */
++static bool qca_skip_oper_speed = true;
++module_param(qca_skip_oper_speed, bool, 0644);
++MODULE_PARM_DESC(qca_skip_oper_speed,
++		 "Keep the UART at init speed instead of switching to oper speed (for the no-firmware path)");
++
+ /* HCI_IBS protocol messages */
+ #define HCI_IBS_SLEEP_IND	0xFE
+ #define HCI_IBS_WAKE_IND	0xFD
+@@ -1994,7 +2004,7 @@ static int qca_setup(struct hci_uart *hu)
+ 
+ 	/* Setup user speed if needed */
+ 	speed = qca_get_speed(hu, QCA_OPER_SPEED);
+-	if (speed) {
++	if (speed && !qca_skip_oper_speed) {
+ 		ret = qca_set_speed(hu, QCA_OPER_SPEED);
+ 		if (ret)
+ 			goto out;
+@@ -2024,7 +2034,11 @@ static int qca_setup(struct hci_uart *hu)
+ 	ret = qca_uart_setup(hdev, qca_baudrate, soc_type, ver,
+ 			firmware_name, rampatch_name);
+ 	if (!ret) {
+-		clear_bit(QCA_IBS_DISABLED, &qca->flags);
++		if (qca_skip_oper_speed)
++			set_bit(QCA_ROM_FW, &qca->flags);
++		else
++			clear_bit(QCA_IBS_DISABLED, &qca->flags);
++
+ 		qca_debugfs_init(hdev);
+ 		hu->hdev->hw_error = qca_hw_error;
+ 		hu->hdev->reset = qca_reset;
+@@ -2032,17 +2046,10 @@ static int qca_setup(struct hci_uart *hu)
+ 			if (device_can_wakeup(hu->serdev->ctrl->dev.parent))
+ 				hu->hdev->wakeup = qca_wakeup;
+ 		}
+-	} else if (ret == -ENOENT) {
++	} else if (ret == -ENOENT || ret == -EAGAIN) {
+ 		/* No patch/nvm-config found, run with original fw/config */
+ 		set_bit(QCA_ROM_FW, &qca->flags);
+ 		ret = 0;
+-	} else if (ret == -EAGAIN) {
+-		/*
+-		 * Userspace firmware loader will return -EAGAIN in case no
+-		 * patch/nvm-config is found, so run with original fw/config.
+-		 */
+-		set_bit(QCA_ROM_FW, &qca->flags);
+-		ret = 0;
+ 	}
+ 
+ out:
+@@ -2249,9 +2256,14 @@ static void qca_power_shutdown(struct hci_uart *hu)
+ 	case QCA_WCN3990:
+ 	case QCA_WCN3991:
+ 	case QCA_WCN3998:
+-		host_set_baudrate(hu, 2400);
++		/*
++		 * WCN3990 combo chip shares power rails with Wi-Fi (ath10k_snoc).
++		 * In particular, VDDIO (pm6125_l9) powers the digital IO of the
++		 * entire combo chip and is not held by ath10k. Disabling regulators
++		 * here cuts VDDIO to the chip and triggers unhandled SMMU context
++		 * faults on the Wi-Fi bus. Send power-off pulse only.
++		 */
+ 		qca_send_power_pulse(hu, false);
+-		qca_regulator_disable(qcadev);
+ 		break;
+ 
+ 	case QCA_WCN6750:
+@@ -2284,9 +2296,15 @@ static int qca_power_off(struct hci_dev *hdev)
+ 	timer_delete_sync(&qca->wake_retrans_timer);
+ 	timer_delete_sync(&qca->tx_idle_timer);
+ 
+-	/* Stop sending shutdown command if soc crashes. */
++	/* Stop sending shutdown command if soc crashes.
++	 * ginkgo: the WCN3990 ROM answers the pre-shutdown command with
++	 * hardware error 0x40, which makes the HCI core close and reopen
++	 * the device (error_reset), so it can never stay powered off.
++	 * Skip the command when running without rampatch.
++	 */
+ 	if (soc_type != QCA_ROME
+-		&& qca->memdump_state == QCA_MEMDUMP_IDLE) {
++		&& qca->memdump_state == QCA_MEMDUMP_IDLE
++		&& !test_bit(QCA_ROM_FW, &qca->flags)) {
+ 		qca_send_pre_shutdown_cmd(hdev);
+ 		usleep_range(8000, 10000);
+ 	}
