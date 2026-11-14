@@ -200,6 +200,159 @@
 			background-color: rgba(255, 255, 255, 0.12);
 		}
 
+		/* ========= NAVIGATION DRAWER (TABLE OF CONTENTS SIDEBAR - 16dp Elevation) ========= */
+		.md1-drawer-scrim {
+			position: fixed;
+			inset: 0;
+			background-color: var(--scrim);
+			z-index: 1040;
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity 250ms var(--ease-standard);
+			backdrop-filter: blur(2px);
+		}
+
+		.md1-drawer-scrim.open {
+			opacity: 1;
+			pointer-events: auto;
+		}
+
+		.md1-drawer {
+			position: fixed;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			width: 300px;
+			max-width: 85vw;
+			background-color: var(--surface);
+			box-shadow: var(--shadow-16);
+			z-index: 1050;
+			display: flex;
+			flex-direction: column;
+			transform: translateX(-100%);
+			transition: transform 250ms var(--ease-decelerate);
+			overflow: hidden;
+		}
+
+		.md1-drawer.open {
+			transform: translateX(0);
+		}
+
+		.drawer-header {
+			height: 140px;
+			background-color: var(--primary);
+			color: var(--on-primary);
+			padding: 20px 20px 16px;
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+			position: relative;
+			background-image: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+			box-shadow: var(--shadow-2);
+		}
+
+		.drawer-header-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.drawer-brand-icon {
+			font-size: 32px;
+			color: rgba(255, 255, 255, 0.95);
+		}
+
+		.drawer-close-btn {
+			color: #FFFFFF;
+			width: 36px;
+			height: 36px;
+		}
+
+		.drawer-header-info {
+			display: flex;
+			flex-direction: column;
+		}
+
+		.drawer-title {
+			font-size: 18px;
+			font-weight: 500;
+			color: #FFFFFF;
+			letter-spacing: 0.15px;
+		}
+
+		.drawer-subtitle {
+			font-size: 13px;
+			color: rgba(255, 255, 255, 0.82);
+			margin-top: 3px;
+		}
+
+		.drawer-content {
+			flex: 1;
+			overflow-y: auto;
+			padding: 12px 0 28px;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.drawer-group-title {
+			font-size: 11px;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 1.2px;
+			color: var(--text-medium);
+			padding: 14px 24px 6px;
+		}
+
+		.drawer-link {
+			display: flex;
+			align-items: center;
+			gap: 16px;
+			padding: 10px 24px;
+			font-size: 14px;
+			font-weight: 500;
+			color: var(--text-high);
+			text-decoration: none;
+			border-left: 4px solid transparent;
+			transition: background-color 150ms var(--ease-standard), color 150ms, border-color 150ms;
+			user-select: none;
+			cursor: pointer;
+		}
+
+		.drawer-link:hover {
+			background-color: var(--state-hover);
+			color: var(--primary);
+		}
+
+		.drawer-link.active {
+			background-color: rgba(63, 81, 181, 0.08);
+			color: var(--primary);
+			border-left-color: var(--primary);
+			font-weight: 500;
+		}
+
+		[data-theme="dark"] .drawer-link.active {
+			background-color: rgba(121, 134, 203, 0.14);
+			color: #80cbc4;
+			border-left-color: #80cbc4;
+		}
+
+		.drawer-link i {
+			font-size: 20px;
+			color: var(--text-medium);
+			transition: color 150ms;
+		}
+
+		.drawer-link:hover i,
+		.drawer-link.active i {
+			color: inherit;
+		}
+
+		.drawer-divider {
+			height: 1px;
+			background-color: var(--divider);
+			margin: 8px 0;
+		}
+
 		/* ========= MAIN CONTAINER ========= */
 		.page-container {
 			max-width: 1200px;
@@ -1236,11 +1389,91 @@
 </head>
 <body>
 
+	<!-- Navigation Drawer Scrim (Backdrop) -->
+	<div class="md1-drawer-scrim" id="drawer-scrim"></div>
+
+	<!-- Navigation Drawer (Table of Contents Sidebar - 16dp Elevation) -->
+	<aside class="md1-drawer" id="toc-drawer" aria-label="Table of Contents">
+		<div class="drawer-header">
+			<div class="drawer-header-top">
+				<i class="material-icons drawer-brand-icon">developer_board</i>
+				<button class="icon-btn drawer-close-btn" id="drawer-close-btn" title="Close Sidebar" aria-label="Close sidebar">
+					<i class="material-icons">chevron_left</i>
+				</button>
+			</div>
+			<div class="drawer-header-info">
+				<div class="drawer-title">Table of Contents</div>
+				<div class="drawer-subtitle">Redmi Note 8 · Mainline Linux Atlas</div>
+			</div>
+		</div>
+
+		<nav class="drawer-content" id="drawer-nav">
+			<div class="drawer-group-title">System Overview</div>
+			<a href="#sec-overview" class="drawer-link" data-target="sec-overview">
+				<i class="material-icons">dashboard</i>
+				<span>Status & Figures</span>
+			</a>
+			<a href="#sec-highlights" class="drawer-link" data-target="sec-highlights">
+				<i class="material-icons">memory</i>
+				<span>Architecture Highlights</span>
+			</a>
+
+			<div class="drawer-divider"></div>
+			<div class="drawer-group-title">Hardware Architecture</div>
+			<a href="#hardware-tree-section" class="drawer-link" data-target="hardware-tree-section">
+				<i class="material-icons">account_tree</i>
+				<span>Architecture Tree (SVG)</span>
+			</a>
+			<a href="#subsystems-grid" class="drawer-link" data-target="subsystems-grid">
+				<i class="material-icons">view_module</i>
+				<span>9 Subsystems Explorer</span>
+			</a>
+			<a href="#readiness-tracker" class="drawer-link" data-target="readiness-tracker">
+				<i class="material-icons">assessment</i>
+				<span>Readiness Tracker</span>
+			</a>
+
+			<div class="drawer-divider"></div>
+			<div class="drawer-group-title">Strategic Milestones</div>
+			<a href="#m-audio" class="drawer-link" data-target="m-audio">
+				<i class="material-icons">volume_up</i>
+				<span>M1: Audio & Sound Output</span>
+			</a>
+			<a href="#m-power" class="drawer-link" data-target="m-power">
+				<i class="material-icons">battery_charging_full</i>
+				<span>M2: Sleep & Battery (S2idle)</span>
+			</a>
+			<a href="#m-sensors" class="drawer-link" data-target="m-sensors">
+				<i class="material-icons">screen_rotation</i>
+				<span>M3: Sensors & Auto-Rotate</span>
+			</a>
+			<a href="#m-cellular" class="drawer-link" data-target="m-cellular">
+				<i class="material-icons">signal_cellular_alt</i>
+				<span>M4: Cellular Modem & 4G LTE</span>
+			</a>
+			<a href="#m-mobile-ui" class="drawer-link" data-target="m-mobile-ui">
+				<i class="material-icons">smartphone</i>
+				<span>M5: Plasma Mobile UI</span>
+			</a>
+
+			<div class="drawer-divider"></div>
+			<div class="drawer-group-title">Engineering Reference</div>
+			<a href="#sec-matrix" class="drawer-link" data-target="sec-matrix">
+				<i class="material-icons">table_chart</i>
+				<span>Comparison Matrix</span>
+			</a>
+			<a href="#sec-directives" class="drawer-link" data-target="sec-directives">
+				<i class="material-icons">policy</i>
+				<span>Kernel Directives</span>
+			</a>
+		</nav>
+	</aside>
+
 	<!-- Top App Bar (Indigo 500, Title, Dynamic Scroll Elevation) -->
 	<header class="md1-app-bar" id="app-bar">
 		<div class="app-bar-left">
-			<button class="icon-btn" data-ripple aria-label="Device Icon">
-				<i class="material-icons">developer_board</i>
+			<button class="icon-btn" id="menu-drawer-toggle" data-ripple aria-label="Open Table of Contents" title="Table of Contents">
+				<i class="material-icons">menu</i>
 			</button>
 			<div class="app-bar-title">ginkgo Mainline Linux — System Atlas & Roadmap</div>
 		</div>
@@ -1257,7 +1490,7 @@
 	<main class="page-container">
 
 		<!-- Hero Paper Banner (2dp Elevation) -->
-		<section class="hero-paper">
+		<section class="hero-paper" id="sec-overview">
 			<div class="hero-kicker">
 				<i class="material-icons" style="font-size: 18px;">verified</i>
 				Mainline Bring-up Status: Baseline Solid (#142 SMP PREEMPT)
@@ -1292,7 +1525,7 @@
 		</section>
 
 		<!-- BIG BOLD HIGHLIGHT CARDS (Skimmable, No Cluttered Badges) -->
-		<div class="cards-cluster-grid">
+		<div class="cards-cluster-grid" id="sec-highlights">
 
 			<div class="bold-feature-card tier-hw">
 				<div class="card-kicker"><i class="material-icons" style="font-size: 16px;">memory</i> Physical Hardware Layer</div>
@@ -1388,7 +1621,7 @@ flowchart TD
 			</div>
 
 			<!-- Spacious 9-Subsystem Architecture Grid (Skimmable Bullets) -->
-			<div class="subsystem-cards-grid">
+			<div class="subsystem-cards-grid" id="subsystems-grid">
 				
 				<div class="subsystem-node-card">
 					<span class="subsystem-node-kicker">Compute Complex</span>
@@ -1484,7 +1717,7 @@ flowchart TD
 		</section>
 
 		<!-- READINESS TRACKER CARD -->
-		<section class="tree-section-paper">
+		<section class="tree-section-paper" id="readiness-tracker">
 			<div class="section-head-row">
 				<div>
 					<h2 class="section-head-title">
@@ -2006,7 +2239,7 @@ ip -br addr show dev wwan0</div>
 			</div>
 		</div>
 
-		<div class="table-card">
+		<div class="table-card" id="sec-matrix">
 			<table class="md1-data-table">
 				<thead>
 					<tr>
@@ -2064,7 +2297,7 @@ ip -br addr show dev wwan0</div>
 		</div>
 
 		<!-- DIRECTIVES & TIPS CARD -->
-		<div class="directives-card">
+		<div class="directives-card" id="sec-directives">
 			<i class="material-icons directives-icon">lightbulb</i>
 			<div class="directives-body">
 				<h3>Non-Negotiable Project Directives for Agents & Developers</h3>
@@ -2623,6 +2856,121 @@ TASKS TO EXECUTE:
 			e.stopPropagation();
 			centerDiagram();
 		});
+
+		// 10. Navigation Drawer (Table of Contents Sidebar) Logic
+		const drawer = document.getElementById('toc-drawer');
+		const drawerScrim = document.getElementById('drawer-scrim');
+		const menuToggleBtn = document.getElementById('menu-drawer-toggle');
+		const drawerCloseBtn = document.getElementById('drawer-close-btn');
+		const drawerLinks = document.querySelectorAll('.drawer-link');
+
+		function openDrawer() {
+			if (!drawer || !drawerScrim) return;
+			drawer.classList.add('open');
+			drawerScrim.classList.add('open');
+			document.body.style.overflow = 'hidden';
+		}
+
+		function closeDrawer() {
+			if (!drawer || !drawerScrim) return;
+			drawer.classList.remove('open');
+			drawerScrim.classList.remove('open');
+			document.body.style.overflow = '';
+		}
+
+		if (menuToggleBtn) {
+			menuToggleBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				openDrawer();
+			});
+		}
+
+		if (drawerCloseBtn) {
+			drawerCloseBtn.addEventListener('click', closeDrawer);
+		}
+
+		if (drawerScrim) {
+			drawerScrim.addEventListener('click', closeDrawer);
+		}
+
+		window.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && drawer && drawer.classList.contains('open')) {
+				closeDrawer();
+			}
+		});
+
+		drawerLinks.forEach(link => {
+			link.addEventListener('click', (e) => {
+				e.preventDefault();
+				const targetId = link.getAttribute('data-target');
+				const targetEl = document.getElementById(targetId);
+				if (!targetEl) return;
+
+				// If target is an accordion milestone or inside one, open it
+				if (targetEl.tagName && targetEl.tagName.toLowerCase() === 'details') {
+					targetEl.open = true;
+				}
+				const parentDetails = targetEl.closest('details');
+				if (parentDetails) {
+					parentDetails.open = true;
+				}
+
+				closeDrawer();
+
+				// Smooth scroll with offset for the sticky Top App Bar (64px + 12px margin = 76px)
+				const headerOffset = 76;
+				const elementPosition = targetEl.getBoundingClientRect().top;
+				const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+				window.scrollTo({
+					top: Math.max(0, offsetPosition),
+					behavior: 'smooth'
+				});
+
+				drawerLinks.forEach(l => l.classList.remove('active'));
+				link.classList.add('active');
+			});
+		});
+
+		// Scrollspy Intersection Observer
+		const trackedSectionIds = [
+			'sec-overview',
+			'sec-highlights',
+			'hardware-tree-section',
+			'subsystems-grid',
+			'readiness-tracker',
+			'm-audio',
+			'm-power',
+			'm-sensors',
+			'm-cellular',
+			'm-mobile-ui',
+			'sec-matrix',
+			'sec-directives'
+		];
+
+		const trackedElements = trackedSectionIds
+			.map(id => document.getElementById(id))
+			.filter(Boolean);
+
+		if ('IntersectionObserver' in window && trackedElements.length > 0) {
+			const scrollspyObserver = new IntersectionObserver((entries) => {
+				entries.forEach(entry => {
+					if (entry.isIntersecting) {
+						const activeId = entry.target.id;
+						drawerLinks.forEach(link => {
+							if (link.getAttribute('data-target') === activeId) {
+								drawerLinks.forEach(l => l.classList.remove('active'));
+								link.classList.add('active');
+							}
+						});
+					}
+				});
+			}, {
+				rootMargin: '-20% 0px -70% 0px'
+			});
+
+			trackedElements.forEach(el => scrollspyObserver.observe(el));
+		}
 	</script>
 
 </body>
