@@ -23,8 +23,9 @@ This project boots a modern mainline Linux 7.0 kernel and an Ubuntu 26.04 arm64 
 
 ## Interactive Architecture & Roadmap
 
-For an interactive, skimmable Material Design guide featuring the full hardware topology, 9 subsystem cards, component readiness tracker, execution steps, and copyable coding agent prompts, open:
-- [docs/ginkgo-roadmap.html](docs/ginkgo-roadmap.html) (double-click to open in any web browser)
+Explore the full hardware topology, 9 subsystem cards, component readiness tracker, execution steps, and copyable coding agent prompts online:
+- 🌐 **[Live System Atlas & Interactive Roadmap (GitHub Pages)](https://theonlyasdk.github.io/ubuntu-for-ginkgo/)**
+- 📄 Local File: [docs/ginkgo-roadmap.html](docs/ginkgo-roadmap.html) (double-click to open in any web browser)
 
 ---
 
