@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replace only the QG module in a backup of the deployed boot image."""
+"""Repack the recovery image with verified, targeted ramdisk replacements."""
 import gzip
 import argparse
 import hashlib
@@ -10,6 +10,7 @@ import tempfile
 OUT = Path(__file__).resolve().parents[1] / "out"
 TARGET = b"overlay/lib/modules/ginkgo-extra/qcom-pmi632-qg.ko"
 UNIT = b"overlay/etc/systemd/system/ginkgo-audio.service"
+KEYBOARD = b"overlay/etc/environment.d/99-ginkgo-keyboard.conf"
 SAFE_UNIT = b"[Unit]\nDescription=Experimental audio disabled for recovery\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n"
 
 
@@ -31,27 +32,34 @@ def entries(archive):
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--base', type=Path, default=OUT / 'boot-before-qg-monitor.img')
+parser.add_argument('--keyboard-config', type=Path)
 parser.add_argument('--module', type=Path, default=OUT / 'qg-rollback/qcom-pmi632-qg.ko')
 parser.add_argument('--output', type=Path, default=OUT / 'boot-audio-recovery.img')
 options = parser.parse_args()
 module = options.module.read_bytes()
+replacements = {TARGET: module, UNIT: SAFE_UNIT}
+if options.keyboard_config:
+    keyboard = options.keyboard_config.read_bytes()
+    assert b'QT_IM_MODULE=' not in keyboard and b'QT_IM_MODULES=' not in keyboard
+    replacements[KEYBOARD] = keyboard
 with tempfile.TemporaryDirectory(prefix="ginkgo-qg-pack-") as temp:
     work = Path(temp)
     args = subprocess.check_output([
-        "unpack_bootimg", "--boot_img", str(OUT / "boot-before-qg-monitor.img"),
+        "unpack_bootimg", "--boot_img", str(options.base),
         "--out", str(work / "original"), "--format", "mkbootimg", "-0",
     ]).decode().rstrip("\0").split("\0")
     original = work / "original"
     archive = gzip.decompress((original / "ramdisk").read_bytes())
     before = list(entries(archive))
-    assert sum(name.removeprefix(b"./") == TARGET for name, *_ in before) == 1
-    assert sum(name.removeprefix(b"./") == UNIT for name, *_ in before) == 1
+    for target in replacements:
+        assert sum(name.removeprefix(b"./") == target for name, *_ in before) == 1
     rebuilt = bytearray()
     for name, header, data, raw in before:
-        if name.removeprefix(b"./") not in (TARGET, UNIT):
+        if name.removeprefix(b"./") not in replacements:
             rebuilt.extend(raw)
             continue
-        replacement = module if name.removeprefix(b"./") == TARGET else SAFE_UNIT
+        replacement = replacements[name.removeprefix(b"./")]
         updated_header = bytearray(header)
         updated_header[54:62] = f"{len(replacement):08x}".encode()
         if header[:6] == b"070702":
@@ -66,10 +74,8 @@ with tempfile.TemporaryDirectory(prefix="ginkgo-qg-pack-") as temp:
     assert len(before) == len(after)
     for old, new in zip(before, after):
         assert old[0] == new[0]
-        if old[0].removeprefix(b"./") == TARGET:
-            assert new[2] == module
-        elif old[0].removeprefix(b"./") == UNIT:
-            assert new[2] == SAFE_UNIT
+        if old[0].removeprefix(b"./") in replacements:
+            assert new[2] == replacements[old[0].removeprefix(b"./")]
         else:
             assert old == new, old[0]
     (original / "ramdisk").write_bytes(gzip.compress(rebuilt, mtime=0))
@@ -88,7 +94,8 @@ with tempfile.TemporaryDirectory(prefix="ginkgo-qg-pack-") as temp:
         "--format", "mkbootimg", "-0",
     ]).decode().rstrip("\0").split("\0")
     assert args == verify_args
-    print(f"Verified {len(before)} ramdisk entries; only the QG module and audio service changed.")
+    changed = [old[0].decode() for old, new in zip(before, after) if old != new]
+    print(f"Verified {len(before)} ramdisk entries; changed: {changed}")
     print("Kernel and boot arguments preserved; ADSP disabled in DTB.")
     print(f"Image: {image} ({image.stat().st_size} bytes)")
     print(f"SHA256: {hashlib.sha256(image.read_bytes()).hexdigest()}")
