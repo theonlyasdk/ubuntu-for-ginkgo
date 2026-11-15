@@ -62,10 +62,25 @@ environment. A startup cleanup script was also installed at
 supporting change for the independently confirmed fix.
 
 The corrected original file is installed live and saved in `rootfs-overlay/`.
-However, older boot ramdisks reapply their embedded overlay on every boot.
-The existing audio-recovery image predates this keyboard fix and may restore
-the bad original file. A future image build must include the corrected
-`99-ginkgo-keyboard.conf`; rebuilding/flashing that image and reboot persistence
-have **not** been performed as part of this documentation update. Do not declare
-reboot persistence verified or reflash an old recovery image expecting it to
-contain this fix.
+Older boot ramdisks reapply their embedded overlay on every boot, so the old
+`boot-audio-recovery.img` can restore the bad file.
+
+## Persistent deployment verified
+
+The corrected config was embedded in `out/boot-audio-keyboard.img`, built using
+checkpoint `5cc0682` and the existing audio-recovery image as its base. Verification
+of all 229 ramdisk entries showed that only
+`overlay/etc/environment.d/99-ginkgo-keyboard.conf` changed. The kernel, disabled
+ADSP/audio, prior battery module, DTB and boot arguments were preserved.
+
+Image SHA256:
+`e553d982e97ee428a18a62a70281b414e2279eab78c466bf63183ce067afa0f4`.
+Rollback image retained: `out/boot-audio-recovery.img`, SHA256
+`ead35527cb98adec475f093da81a6c442ada1d20e190ed3da91c55343e0cfbac`.
+
+`fastboot flash boot out/boot-audio-keyboard.img` and `fastboot reboot` succeeded.
+The phone booted normally without a temporary `fastboot boot` command. Post-boot
+SSH verified the corrected config, a running plasma-keyboard process, no forced
+Qt input-engine variables in KWin or plasmashell, and ADSP still disabled.
+Configuration persistence across this reboot is verified; the owner has not yet
+repeated the visual typing check on this particular boot.
