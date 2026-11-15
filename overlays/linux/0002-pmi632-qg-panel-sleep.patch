@@ -704,15 +704,18 @@ new file mode 100644
 index 000000000..95fc65d85
 --- /dev/null
 +++ b/drivers/power/supply/qcom-pmi632-qg.c
-@@ -0,0 +1,324 @@
+@@ -0,0 +1,485 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
-+ * Minimal PMI632 Qualcomm Gauge: voltage_now / current_now / capacity
-+ * from QG LAST_ADC (no full CAF qpnp-qg SOC algorithm).
++ * Minimal PMI632 Qualcomm Gauge & Charger Status:
++ * voltage_now / current_now / capacity from QG LAST_ADC,
++ * VBUS presence from PMI632 USBIN (0x1310),
++ * and hardware charging state from PMI632 CHGR (0x1006).
 + */
 +#include <linux/bitops.h>
 +#include <linux/bits.h>
 +#include <linux/errno.h>
++#include <linux/jiffies.h>
 +#include <linux/math64.h>
 +#include <linux/minmax.h>
 +#include <linux/module.h>
@@ -720,6 +723,7 @@ index 000000000..95fc65d85
 +#include <linux/platform_device.h>
 +#include <linux/power_supply.h>
 +#include <linux/regmap.h>
++#include <linux/workqueue.h>
 +
 +#define QG_PERPH_TYPE			0x04
 +#define QG_PERPH_SUBTYPE		0x05
@@ -751,12 +755,33 @@ index 000000000..95fc65d85
 +#define VBAT_MIN_UV			3400000
 +#define VBAT_MAX_UV			4350000
 +
++/* PMI632 Charger and USBIN peripheral definitions */
++#define PMI632_CHGR_BASE		0x1000
++#define PMI632_CHGR_STATUS1		(PMI632_CHGR_BASE + 0x06)
++#define PMI632_CHGR_STATUS_MASK		GENMASK(2, 0)
++#define PMI632_CHGR_TRICKLE		0
++#define PMI632_CHGR_PRE			1
++#define PMI632_CHGR_FAST		2
++#define PMI632_CHGR_FULLON		3
++#define PMI632_CHGR_TAPER		4
++#define PMI632_CHGR_TERMINATE		5
++#define PMI632_CHGR_INHIBIT		6
++#define PMI632_CHGR_DISABLE		7
++
++#define PMI632_USBIN_BASE		0x1300
++#define PMI632_USBIN_INT_RT_STS		(PMI632_USBIN_BASE + 0x10)
++#define PMI632_USBIN_PLUGIN_BIT		BIT(4)
++
 +struct pmi632_qg {
 +	struct device *dev;
 +	struct regmap *regmap;
 +	u32 base;
 +	u32 i_lsb_ua;
 +	struct power_supply *psy;
++	struct power_supply *psy_usb;
++	struct delayed_work poll_work;
++	bool last_vbus;
++	int last_status;
 +};
 +
 +static int qg_read8(struct pmi632_qg *qg, u32 off, u8 *val)
@@ -767,7 +792,7 @@ index 000000000..95fc65d85
 +	ret = regmap_read(qg->regmap, qg->base + off, &v);
 +	if (ret)
 +		return ret;
-+	*val = v;
++	*val = (u8)v;
 +	return 0;
 +}
 +
@@ -892,6 +917,52 @@ index 000000000..95fc65d85
 +	return clamp(pct, 0, 100);
 +}
 +
++static bool pmi632_is_vbus_present(struct pmi632_qg *qg)
++{
++	unsigned int stat = 0;
++	int ret = regmap_read(qg->regmap, PMI632_USBIN_INT_RT_STS, &stat);
++
++	if (ret)
++		return false;
++	return !!(stat & PMI632_USBIN_PLUGIN_BIT);
++}
++
++static int pmi632_get_charging_status(struct pmi632_qg *qg, int uv)
++{
++	unsigned int chg_stat = 0;
++	int ret;
++
++	if (!pmi632_is_vbus_present(qg))
++		return POWER_SUPPLY_STATUS_DISCHARGING;
++
++	ret = regmap_read(qg->regmap, PMI632_CHGR_STATUS1, &chg_stat);
++	if (!ret) {
++		u8 mode = chg_stat & PMI632_CHGR_STATUS_MASK;
++
++		switch (mode) {
++		case PMI632_CHGR_TRICKLE:
++		case PMI632_CHGR_PRE:
++		case PMI632_CHGR_FAST:
++		case PMI632_CHGR_FULLON:
++		case PMI632_CHGR_TAPER:
++			return POWER_SUPPLY_STATUS_CHARGING;
++		case PMI632_CHGR_TERMINATE:
++		case PMI632_CHGR_INHIBIT:
++			return POWER_SUPPLY_STATUS_FULL;
++		case PMI632_CHGR_DISABLE:
++			return POWER_SUPPLY_STATUS_NOT_CHARGING;
++		default:
++			break;
++		}
++	}
++
++	/* Fallback if CHGR register unreadable or state unknown */
++	if (qg_capacity_from_v(uv) >= 100)
++		return POWER_SUPPLY_STATUS_FULL;
++
++	return POWER_SUPPLY_STATUS_CHARGING;
++}
++
 +static int qg_get_property(struct power_supply *psy,
 +			   enum power_supply_property psp,
 +			   union power_supply_propval *val)
@@ -924,7 +995,15 @@ index 000000000..95fc65d85
 +		val->intval = uv;
 +		break;
 +	case POWER_SUPPLY_PROP_CURRENT_NOW:
-+		val->intval = ua;
++		/*
++		 * Linux power_supply ABI:
++		 *   Positive values for charging batteries.
++		 *   Negative values for discharging batteries.
++		 * PMI632 QG hardware LAST_ADC_I / FIFO:
++		 *   Positive for discharge current, negative for charge current.
++		 * Invert sign to match Linux ABI.
++		 */
++		val->intval = -ua;
 +		break;
 +	case POWER_SUPPLY_PROP_CAPACITY:
 +		if (!qg_read8(qg, QG_SOC_MONOTONIC, &soc) && soc > 0 && soc <= 100)
@@ -933,12 +1012,7 @@ index 000000000..95fc65d85
 +			val->intval = qg_capacity_from_v(uv);
 +		break;
 +	case POWER_SUPPLY_PROP_STATUS:
-+		if (ua > 50000)
-+			val->intval = POWER_SUPPLY_STATUS_CHARGING;
-+		else if (ua < -50000)
-+			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
-+		else
-+			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
++		val->intval = pmi632_get_charging_status(qg, uv);
 +		break;
 +	default:
 +		return -EINVAL;
@@ -962,10 +1036,77 @@ index 000000000..95fc65d85
 +	.get_property = qg_get_property,
 +};
 +
++static enum power_supply_property qg_usb_props[] = {
++	POWER_SUPPLY_PROP_ONLINE,
++	POWER_SUPPLY_PROP_PRESENT,
++	POWER_SUPPLY_PROP_CURRENT_MAX,
++	POWER_SUPPLY_PROP_VOLTAGE_MAX,
++};
++
++static int qg_usb_get_property(struct power_supply *psy,
++			       enum power_supply_property psp,
++			       union power_supply_propval *val)
++{
++	struct pmi632_qg *qg = power_supply_get_drvdata(psy);
++	bool vbus = pmi632_is_vbus_present(qg);
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_ONLINE:
++	case POWER_SUPPLY_PROP_PRESENT:
++		val->intval = vbus ? 1 : 0;
++		break;
++	case POWER_SUPPLY_PROP_CURRENT_MAX:
++		val->intval = 3000000; /* 3.0A */
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
++		val->intval = 5000000; /* 5.0V */
++		break;
++	default:
++		return -EINVAL;
++	}
++	return 0;
++}
++
++static const struct power_supply_desc qg_usb_desc = {
++	.name = "qcom-usb",
++	.type = POWER_SUPPLY_TYPE_USB,
++	.properties = qg_usb_props,
++	.num_properties = ARRAY_SIZE(qg_usb_props),
++	.get_property = qg_usb_get_property,
++};
++
++static void pmi632_poll_work(struct work_struct *work)
++{
++	struct pmi632_qg *qg = container_of(work, struct pmi632_qg, poll_work.work);
++	bool vbus = pmi632_is_vbus_present(qg);
++	int uv = 0, ua = 0, status;
++
++	qg_last_vi(qg, &uv, &ua);
++	status = pmi632_get_charging_status(qg, uv);
++
++	if (vbus != qg->last_vbus || status != qg->last_status) {
++		qg->last_vbus = vbus;
++		qg->last_status = status;
++		power_supply_changed(qg->psy);
++		if (qg->psy_usb)
++			power_supply_changed(qg->psy_usb);
++	}
++
++	schedule_delayed_work(&qg->poll_work, msecs_to_jiffies(2000));
++}
++
++static void pmi632_qg_cancel_work(void *data)
++{
++	struct pmi632_qg *qg = data;
++
++	cancel_delayed_work_sync(&qg->poll_work);
++}
++
 +static int pmi632_qg_probe(struct platform_device *pdev)
 +{
 +	struct pmi632_qg *qg;
 +	struct power_supply_config psy_cfg = {};
++	struct power_supply_config psy_cfg_usb = {};
 +	u8 type = 0;
 +	int ret;
 +
@@ -1006,9 +1147,29 @@ index 000000000..95fc65d85
 +	if (IS_ERR(qg->psy))
 +		return PTR_ERR(qg->psy);
 +
++	/* Register USB power supply so UPower/desktop detects AC power connection */
++	psy_cfg_usb.drv_data = qg;
++	psy_cfg_usb.fwnode = NULL;
++	qg->psy_usb = devm_power_supply_register(&pdev->dev, &qg_usb_desc, &psy_cfg_usb);
++	if (IS_ERR(qg->psy_usb)) {
++		dev_warn(&pdev->dev, "failed to register USB power supply: %ld\n",
++			 PTR_ERR(qg->psy_usb));
++		qg->psy_usb = NULL;
++	}
++
 +	platform_set_drvdata(pdev, qg);
-+	dev_info(&pdev->dev, "PMI632 QG at 0x%x subtype-lsb %u\n",
-+		 qg->base, qg->i_lsb_ua);
++
++	/* Periodic poller for instant uevents when cable is plugged/unplugged */
++	qg->last_vbus = pmi632_is_vbus_present(qg);
++	qg->last_status = pmi632_get_charging_status(qg, 0);
++	INIT_DELAYED_WORK(&qg->poll_work, pmi632_poll_work);
++	ret = devm_add_action_or_reset(&pdev->dev, pmi632_qg_cancel_work, qg);
++	if (ret)
++		return ret;
++	schedule_delayed_work(&qg->poll_work, msecs_to_jiffies(2000));
++
++	dev_info(&pdev->dev, "PMI632 QG at 0x%x subtype-lsb %u (VBUS online: %d)\n",
++		 qg->base, qg->i_lsb_ua, qg->last_vbus);
 +	return 0;
 +}
 +
@@ -1027,5 +1188,5 @@ index 000000000..95fc65d85
 +};
 +module_platform_driver(pmi632_qg_driver);
 +
-+MODULE_DESCRIPTION("Qualcomm PMI632 QG voltage/current");
++MODULE_DESCRIPTION("Qualcomm PMI632 QG voltage/current/charger");
 +MODULE_LICENSE("GPL");

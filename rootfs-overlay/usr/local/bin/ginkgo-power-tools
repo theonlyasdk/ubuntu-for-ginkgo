@@ -1,0 +1,408 @@
+#!/usr/bin/env python3
+import glob
+import os
+import subprocess
+import sys
+
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+
+def get_usb_role():
+    paths = glob.glob("/sys/class/usb_role/*/role")
+    if paths and os.path.exists(paths[0]):
+        try:
+            with open(paths[0], "r") as f:
+                return f.read().strip()
+        except Exception:
+            pass
+    return "unknown"
+
+
+def get_power_mode():
+    conf = "/etc/ginkgo-power-mode.conf"
+    if os.path.exists(conf):
+        try:
+            with open(conf, "r") as f:
+                mode = f.read().strip()
+                if mode in ("performance", "balanced", "eco"):
+                    return mode
+        except Exception:
+            pass
+    return "balanced"
+
+
+class ConfirmDialog(QDialog):
+    def __init__(self, title, message, action_text="Confirm", action_color="#dc2626", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setFixedSize(380, 180)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #18181b;
+                color: #f4f4f5;
+                border: 1px solid #3f3f46;
+                border-radius: 12px;
+            }
+            QLabel {
+                background: transparent;
+                background-color: transparent;
+                border: none;
+                color: #f4f4f5;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(14)
+
+        header = QLabel(title, self)
+        header.setFont(QFont("sans-serif", 15, QFont.Weight.Bold))
+        header.setStyleSheet("color: #fafafa;")
+        layout.addWidget(header)
+
+        msg = QLabel(message, self)
+        msg.setWordWrap(True)
+        msg.setFont(QFont("sans-serif", 11))
+        msg.setStyleSheet("color: #a1a1aa;")
+        layout.addWidget(msg)
+
+        layout.addStretch()
+
+        btn_box = QHBoxLayout()
+        btn_box.setSpacing(10)
+
+        cancel_btn = QPushButton("Cancel", self)
+        cancel_btn.setFixedHeight(42)
+        cancel_btn.setFont(QFont("sans-serif", 12))
+        cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #27272a;
+                color: #f4f4f5;
+                border: 1px solid #3f3f46;
+                border-radius: 8px;
+                padding: 6px 16px;
+            }
+            QPushButton:hover {
+                background-color: #323238;
+                border-color: #52525b;
+            }
+        """)
+        cancel_btn.clicked.connect(self.reject)
+
+        confirm_btn = QPushButton(action_text, self)
+        confirm_btn.setFixedHeight(42)
+        confirm_btn.setFont(QFont("sans-serif", 12, QFont.Weight.Bold))
+        confirm_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        confirm_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {action_color};
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 8px;
+                padding: 6px 16px;
+            }}
+            QPushButton:hover {{
+                opacity: 0.9;
+            }}
+        """)
+        confirm_btn.clicked.connect(self.accept)
+
+        btn_box.addWidget(cancel_btn)
+        btn_box.addWidget(confirm_btn)
+        layout.addLayout(btn_box)
+
+
+class ActionCard(QPushButton):
+    def __init__(self, icon_text, title, subtitle, parent=None):
+        super().__init__(parent)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMinimumSize(180, 130)
+        self.setStyleSheet("""
+            ActionCard {
+                background-color: #27272a;
+                border: 1px solid #3f3f46;
+                border-radius: 12px;
+                padding: 10px;
+            }
+            ActionCard:hover {
+                background-color: #323238;
+                border: 1px solid #52525b;
+            }
+            ActionCard:pressed {
+                background-color: #1f1f23;
+                border: 1px solid #3f3f46;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(4)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        top_row = QHBoxLayout()
+        top_row.setSpacing(6)
+        top_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.icon_label = QLabel(icon_text, self)
+        self.icon_label.setFont(QFont("sans-serif", 24))
+        self.icon_label.setStyleSheet("background: transparent; background-color: transparent; border: none;")
+        self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+        self.title_label = QLabel(title, self)
+        self.title_label.setFont(QFont("sans-serif", 13, QFont.Weight.Bold))
+        self.title_label.setStyleSheet("background: transparent; background-color: transparent; border: none; color: #fafafa;")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+        top_row.addWidget(self.icon_label)
+        top_row.addWidget(self.title_label)
+        layout.addLayout(top_row)
+
+        self.sub_label = QLabel(subtitle, self)
+        self.sub_label.setFont(QFont("sans-serif", 10))
+        self.sub_label.setStyleSheet("background: transparent; background-color: transparent; border: none; color: #a1a1aa;")
+        self.sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.sub_label.setWordWrap(True)
+        self.sub_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        layout.addWidget(self.sub_label)
+
+        self.badge_label = QLabel("", self)
+        self.badge_label.setFont(QFont("sans-serif", 9, QFont.Weight.Bold))
+        self.badge_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.badge_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.badge_label.hide()
+        layout.addWidget(self.badge_label, 0, Qt.AlignmentFlag.AlignCenter)
+
+
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Device Controls")
+        self.resize(650, 360)
+        self.setMinimumSize(580, 320)
+        self.setStyleSheet("""
+            MainWindow {
+                background-color: #18181b;
+                color: #f4f4f5;
+                font-family: sans-serif;
+            }
+        """)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(18, 16, 18, 16)
+        main_layout.setSpacing(12)
+
+        header_layout = QHBoxLayout()
+        header = QLabel("Device Controls", self)
+        header.setFont(QFont("sans-serif", 16, QFont.Weight.Bold))
+        header.setStyleSheet("background: transparent; border: none; color: #fafafa;")
+        header_layout.addWidget(header)
+        header_layout.addStretch()
+
+        self.status_bar = QLabel("Ready", self)
+        self.status_bar.setFont(QFont("sans-serif", 11))
+        self.status_bar.setStyleSheet("background: transparent; border: none; color: #71717a;")
+        header_layout.addWidget(self.status_bar)
+        main_layout.addLayout(header_layout)
+
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(12)
+
+        # Row 1, Col 0: USB OTG Switch
+        self.otg_card = ActionCard("🔌", "USB Mode", "Switch Host / Device", self)
+        self.otg_card.clicked.connect(self.toggle_usb_otg)
+        grid_layout.addWidget(self.otg_card, 0, 0)
+
+        # Row 1, Col 1: Fastboot
+        self.fastboot_card = ActionCard("⚡", "Fastboot", "Reboot to bootloader", self)
+        self.fastboot_card.clicked.connect(self.reboot_fastboot)
+        grid_layout.addWidget(self.fastboot_card, 0, 1)
+
+        # Row 1, Col 2: Recovery
+        self.recovery_card = ActionCard("🛠️", "Recovery", "Reboot to recovery", self)
+        self.recovery_card.clicked.connect(self.reboot_recovery)
+        grid_layout.addWidget(self.recovery_card, 0, 2)
+
+        # Row 2, Col 0: Power Mode
+        self.power_card = ActionCard("🚀", "Power Mode", "Balanced / Performance / Eco", self)
+        self.power_card.clicked.connect(self.cycle_power_mode)
+        grid_layout.addWidget(self.power_card, 1, 0)
+
+        # Row 2, Col 1: Touch Sync
+        self.touch_card = ActionCard("👆", "Touch Sync", "Reload Novatek SPI SRAM", self)
+        self.touch_card.clicked.connect(self.trigger_touch_sync)
+        grid_layout.addWidget(self.touch_card, 1, 1)
+
+        # Row 2, Col 2: Power Off
+        self.poweroff_card = ActionCard("⏻", "Power Off", "Shutdown phone cleanly", self)
+        self.poweroff_card.clicked.connect(self.power_off)
+        grid_layout.addWidget(self.poweroff_card, 1, 2)
+
+        main_layout.addLayout(grid_layout)
+
+        self.update_all_status()
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_all_status)
+        self.timer.start(3000)
+
+    def update_all_status(self):
+        # 1. Update USB role
+        role = get_usb_role()
+        self.otg_card.badge_label.show()
+        if role == "host":
+            self.otg_card.badge_label.setText("HOST ACTIVE")
+            self.otg_card.badge_label.setStyleSheet("""
+                background-color: #064e3b;
+                color: #34d399;
+                border: 1px solid #059669;
+                border-radius: 5px;
+                padding: 2px 7px;
+            """)
+            self.otg_card.sub_label.setText("5V VBUS ON (Tap for PC)")
+        elif role == "device":
+            self.otg_card.badge_label.setText("PC LINK")
+            self.otg_card.badge_label.setStyleSheet("""
+                background-color: #1e293b;
+                color: #38bdf8;
+                border: 1px solid #0284c7;
+                border-radius: 5px;
+                padding: 2px 7px;
+            """)
+            self.otg_card.sub_label.setText("RNDIS Gadget (SSH: 192.168.7.2)")
+        else:
+            self.otg_card.badge_label.setText(role.upper())
+            self.otg_card.badge_label.setStyleSheet("""
+                background-color: #27272a;
+                color: #a1a1aa;
+                border: 1px solid #3f3f46;
+                border-radius: 5px;
+                padding: 2px 7px;
+            """)
+
+        # 2. Update Power Mode
+        pmode = get_power_mode()
+        self.power_card.badge_label.show()
+        if pmode == "performance":
+            self.power_card.badge_label.setText("PERFORMANCE")
+            self.power_card.badge_label.setStyleSheet("""
+                background-color: #451a03;
+                color: #fbbf24;
+                border: 1px solid #d97706;
+                border-radius: 5px;
+                padding: 2px 7px;
+            """)
+            self.power_card.sub_label.setText("All cores & GPU pinned max")
+        elif pmode == "eco":
+            self.power_card.badge_label.setText("ECO")
+            self.power_card.badge_label.setStyleSheet("""
+                background-color: #064e3b;
+                color: #a7f3d0;
+                border: 1px solid #059669;
+                border-radius: 5px;
+                padding: 2px 7px;
+            """)
+            self.power_card.sub_label.setText("Minimum clock, deep idle")
+        else:
+            self.power_card.badge_label.setText("BALANCED")
+            self.power_card.badge_label.setStyleSheet("""
+                background-color: #1e293b;
+                color: #93c5fd;
+                border: 1px solid #3b82f6;
+                border-radius: 5px;
+                padding: 2px 7px;
+            """)
+            self.power_card.sub_label.setText("Schedutil dynamic scaling")
+
+    def toggle_usb_otg(self):
+        self.status_bar.setText("Switching USB mode...")
+        QApplication.processEvents()
+        try:
+            subprocess.run(["sudo", "/usr/local/sbin/ginkgo-usb-otg.sh"], check=False)
+            self.status_bar.setText("USB mode toggled")
+        except Exception as e:
+            self.status_bar.setText(f"Error: {e}")
+        self.update_all_status()
+
+    def cycle_power_mode(self):
+        current = get_power_mode()
+        next_mode = "performance" if current == "balanced" else ("eco" if current == "performance" else "balanced")
+        self.status_bar.setText(f"Setting power mode: {next_mode}...")
+        QApplication.processEvents()
+        try:
+            subprocess.run(["sudo", "/usr/local/sbin/ginkgo-power-mode.sh", next_mode], check=False)
+            self.status_bar.setText(f"Power mode: {next_mode}")
+        except Exception as e:
+            self.status_bar.setText(f"Error: {e}")
+        self.update_all_status()
+
+    def trigger_touch_sync(self):
+        self.status_bar.setText("Re-syncing touch SRAM...")
+        QApplication.processEvents()
+        try:
+            res = subprocess.run(["sudo", "/usr/local/sbin/ginkgo-touch-sync.sh"], capture_output=True, text=True, check=False)
+            self.status_bar.setText("Touch SRAM re-synced OK")
+        except Exception as e:
+            self.status_bar.setText(f"Error: {e}")
+
+    def reboot_fastboot(self):
+        dialog = ConfirmDialog(
+            "Reboot to Fastboot?",
+            "The device will immediately reboot into Qualcomm Fastboot (bootloader) mode.",
+            action_text="Fastboot",
+            action_color="#7c3aed",
+            parent=self,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.status_bar.setText("Rebooting to Fastboot...")
+            QApplication.processEvents()
+            subprocess.run(["sudo", "/usr/local/sbin/reboot-fastboot"], check=False)
+
+    def reboot_recovery(self):
+        dialog = ConfirmDialog(
+            "Reboot to Recovery?",
+            "The device will immediately reboot into Recovery mode.",
+            action_text="Recovery",
+            action_color="#2563eb",
+            parent=self,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.status_bar.setText("Rebooting to Recovery...")
+            QApplication.processEvents()
+            subprocess.run(["sudo", "/sbin/reboot", "recovery"], check=False)
+
+    def power_off(self):
+        dialog = ConfirmDialog(
+            "Power Off Device?",
+            "The system will shut down completely.",
+            action_text="Power Off",
+            action_color="#dc2626",
+            parent=self,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.status_bar.setText("Shutting down...")
+            QApplication.processEvents()
+            subprocess.run(["sudo", "/sbin/poweroff"], check=False)
+
+
+def main():
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

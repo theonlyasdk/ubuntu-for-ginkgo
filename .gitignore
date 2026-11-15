@@ -31,4 +31,5 @@ backup/ginkgo/logs/
 
 # Editor / agent workspace (not part of the public tree)
 .cursor/
+.codex-attachments/
 graphify-out/

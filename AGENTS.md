@@ -16,12 +16,23 @@
 | [docs/mainline-ginkgo-porting-guide.md](docs/audit/mainline-ginkgo-porting-guide.md) | Hardware map and staged plan |
 | [scripts/usb-connect.sh](scripts/usb-connect.sh) | Host-side RNDIS setup after every reboot |
 | [scripts/ssh-run.sh](scripts/ssh-run.sh) | One remote command, Linux host |
+| [scripts/ssh_cmd.py](scripts/ssh_cmd.py) | Preferred direct SSH command helper for agents |
 
 ---
 
 ## 0. One-sentence conclusion
 
 The phone is only ever reachable over **one USB cable that carries a virtual network card (RNDIS)**: `192.168.7.2` is the SSH/debug address, `192.168.137.50` is a *second* address on the same interface that only reaches the internet if Windows Internet Connection Sharing is switched on — and when it is off, which is the normal state, everything (packages, kernels, configs) is installed by hand from the host.
+
+### Git checkpoints and recoverable deployments (agent directive)
+
+- Before changing drivers, boot configuration, or deployment scripts, inspect `git status --short` and the relevant diffs, and record the branch and commit SHA. Preserve existing work, including untracked files. Use explicit paths when staging; never sweep unrelated changes into a commit with `git add .` or `git add -A`.
+- Preserve the working baseline **before** experimenting. Make focused local checkpoint commits for task-related source/configuration changes unless the owner has instructed otherwise. Preserve pre-existing changes outside the task separately without modifying them. If a relevant uncommitted baseline cannot be committed cleanly, save its exact diff and untracked files in a named backup and record where they are. Do not rely on memory or an ignored `out/` file as the only record of source changes.
+- Before flashing, checkpoint the exact source, configuration, and build/repack scripts used for the candidate. Record that commit SHA, artifact paths and SHA256 hashes, kernel release/vermagic, and the checks performed in the handoff. If the build includes uncommitted changes, explicitly mark it dirty and preserve those exact changes; do not describe it as a reproducible build of HEAD.
+- Keep the previous boot image and deployed modules under distinct backup names before replacing them. Verify backups completed and record their hashes. Git records source history; it does not back up the phone's partitions or ignored build artifacts. Keep binary backups out of ordinary source commits.
+- Call a revision **known good** only for behavior actually tested on that revision/artifact. Record checks such as boot, display, touch, USB unplug, and percentage reporting individually as passed, failed, or untested. Neither HEAD nor a successful build proves the running phone matches that source or that unplugging works.
+- On regression, prepare a targeted rollback from the recorded baseline, preserving unrelated work and the deployed core kernel. Prefer a focused `git revert` for committed changes, or a separate worktree/build of the baseline when appropriate. Never use `git reset --hard`, `git clean`, broad checkout/restore, or an unreviewed stash operation to discard the owner's work. Identify the exact image/module being restored and verify the restored behavior before declaring recovery.
+- Local checkpoints do not authorize pushing, force-pushing, rewriting shared history, or flashing additional partitions. Follow the owner's deployment instructions and existing scope; do not ask again for an action already authorized.
 
 ---
 
@@ -98,6 +109,19 @@ The `nmcli device set <iface> managed no` step inside that script is not cosmeti
 
 ## 3. SSH methods
 
+### Preferred agent command helper
+
+Use `python scripts/ssh_cmd.py "<command>"` for routine remote commands. It requires Python and Paramiko, defaults to USB at `192.168.7.2`, prints only the remote output, and returns the remote command's exit status. Keep commands focused and limit verbose logs (for example, `journalctl -n 100`) to conserve context. The helper executes commands only; use SSH/SCP separately for stdin scripts or file transfers.
+
+```powershell
+python scripts/ssh_cmd.py 'uname -a'
+$env:GINKGO_IP = '10.220.61.7'  # example only: use the phone's current Wi-Fi address
+python scripts/ssh_cmd.py 'ip -br addr'
+Remove-Item Env:GINKGO_IP       # return to USB
+```
+
+`GINKGO_ROOT_PASSWORD` optionally overrides the documented default password. The helper does not configure the host USB interface or automatically switch between USB and Wi-Fi. On Linux, run `scripts/usb-connect.sh` first when needed. The methods below remain available for transfers and other SSH workflows.
+
 ### 3.1 Linux host (the scripted way)
 
 ```sh
@@ -109,7 +133,7 @@ ssh -b 192.168.7.1 root@192.168.7.2 # after usb-connect.sh; -b pins the source a
 
 ### 3.2 Windows / Git Bash (no sshpass installed)
 
-OpenSSH on Windows can only answer password prompts through an askpass helper. One-time setup:
+For commands, prefer `scripts/ssh_cmd.py` above. For OpenSSH/SCP without an interactive password prompt, set up an askpass helper:
 
 ```sh
 printf '#!/bin/sh\necho <root password>\n' > /c/Users/<user>/AppData/Local/Temp/gk-askpass.sh
@@ -176,7 +200,7 @@ systemctl restart ginkgo-ics-inet.service       # re-apply ICS address/route/DNS
 
 The device supports dual-path networking:
 1. **USB RNDIS (`usb0`)**: The primary high-speed management link (`192.168.7.2`). Always available after boot.
-2. **Wi-Fi (`wlan0`)**: Driven by `ath10k_snoc` on WCN3990. Requires modem subsystem boot (`ginkgo-mpss.service` starting `/lib/firmware/qcom/sm6125/modem.*`). When connected to a local hotspot or router, `wlan0` provides direct internet access and allows wireless SSH (`ssh-exec.ps1` automatically queries `$env:GINKGO_IP` if set).
+2. **Wi-Fi (`wlan0`)**: Driven by `ath10k_snoc` on WCN3990. Requires modem subsystem boot (`ginkgo-mpss.service` starting `/lib/firmware/qcom/sm6125/modem.*`). When connected to a local hotspot or router, `wlan0` provides direct internet access and allows wireless SSH (`scripts/ssh_cmd.py` uses `$env:GINKGO_IP` when set).
 
 When Wi-Fi is disconnected, internet traffic over USB can use Windows ICS or Linux NAT.
 
@@ -447,7 +471,7 @@ The enforced procedure, inside `ginkgo-debloat.sh`: `apt-mark manual` the protec
 
 Login trim is done the KDE-native way: per-user `~/.config/autostart/*.desktop` copies with `Hidden=true` (exactly what System Settings → Autostart writes), plus `enabled=false` in `~/.config/baloofilerc` for the file indexer. Nothing is edited in `/etc/xdg/autostart`, so packages keep their own files intact.
 
-Keyboard engine: one only. Both `QT_IM_MODULE` and `QT_IM_MODULES` must name the same plugin, or two engines race for the focused text field and the keyboard opens then immediately closes.
+Keyboard: KWin selects `/usr/share/applications/org.kde.plasma.keyboard.desktop` as its Wayland input method. Do not globally force `QT_IM_MODULE` or `QT_IM_MODULES` to `qtvirtualkeyboard`. The confirmed appearance fix removed both assignments from the original `99-ginkgo-keyboard.conf`, then stopped SDDM, terminated the entire ginkgo user session, and started SDDM again. Empty overrides or restarting only SDDM/KWin were insufficient. The owner confirmed the resulting appearance. Older ramdisks can restore the bad file on reboot; include the corrected original file in future images. See [the keyboard fix and persistence limits](docs/audit/plasma-keyboard-fallback-fix.md).
 
 ---
 

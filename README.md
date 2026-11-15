@@ -17,7 +17,7 @@ This project boots a modern mainline Linux 7.0 kernel and an Ubuntu 26.04 arm64 
 | **Wi-Fi** | Qualcomm WCN3990 (`ath10k_snoc`) | **Working** | 5GHz 802.11ac confirmed (292.5 Mbps) |
 | **Bluetooth** | Qualcomm WCN3990 (ROM Mode) | **Working** | Bluetooth 5.0, stable BD address, crypto modules loaded |
 | **Connectivity**| DWC3 USB Type-C (RNDIS Gadget) | **Working** | SSH at `192.168.7.2`, ICS internet at `192.168.137.50` |
-| **Battery** | PMI632 Fuel Gauge (`qgauge@4800`) | **Working** | Driven by `qcom-pmi632-qg.ko` |
+| **Battery & Power** | PMI632 Fuel Gauge (`qgauge@4800`) | **Working with limitations** | Recovery uses the earlier percentage-reporting driver; USB charger monitoring remains [experimental](docs/pmi632-battery-driver.md) |
 
 ---
 

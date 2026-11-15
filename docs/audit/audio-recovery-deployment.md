@@ -23,3 +23,18 @@ The repacker verifies all 229 archive entries and unpacked image components.
 Boot, display, touch, applets and unplug stability require post-flash testing.
 Experimental audio source is retained; no audio functionality is expected in
 this recovery image. Existing rootfs audio configuration is not removed.
+
+## Recovery result
+
+Flashing succeeded, but `fastboot reboot` returned to fastboot. Direct boot via
+`fastboot boot out/boot-audio-recovery.img` reached Linux successfully. SSH
+confirmed SDDM active, ADSP disabled, the audio service replaced by its no-op,
+no `snd` modules loaded, and battery capacity 73%.
+
+The owner then confirmed the phone works in response to the request to try
+the battery/sound applets with USB connected. Treat this as the current
+responsive recovery baseline. Audio playback is intentionally unavailable;
+USB-unplug stability and unattended/power-cycle boot remain unverified.
+Do not re-enable the experimental audio stack without an isolated test and a
+preserved recovery path. This supports an audio-related regression but does
+not identify the failing component within that stack.

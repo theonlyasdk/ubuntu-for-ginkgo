@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Device Controls
+GenericName=USB OTG & Power Controls
+Comment=USB OTG switch, Fastboot reboot, and Recovery reboot
+Exec=/usr/local/bin/ginkgo-power-tools
+Path=/home/ginkgo
+Icon=preferences-system-power-management
+Terminal=false
+Categories=System;Utility;
+Keywords=usb;otg;host;fastboot;bootloader;recovery;reboot;
+StartupNotify=true

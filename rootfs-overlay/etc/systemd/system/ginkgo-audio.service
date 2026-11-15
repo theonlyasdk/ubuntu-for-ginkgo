@@ -1,0 +1,13 @@
+[Unit]
+Description=Ginkgo Audio Subsystem Kernel Modules
+DefaultDependencies=no
+Before=sound.target basic.target
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/ginkgo-audio-modules.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=basic.target
